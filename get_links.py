@@ -140,14 +140,23 @@ class GolfAdvisor(ReviewScraper):
         pages = self.check_pages()
         for i in xrange(pages):
             course_doc['reviews'] += self.get_review(url + '?page={}'.format(i))
+        return course_doc
 
     def get_reviews(self, url):
+        '''
+        Retrieve all reviews on a single page.
+        INPUT:
+            self: uses self.browser for retrieving elements from page
+            url: string of webpage address from which to retrieve reviews
+        OUTPUT:
+            reviews_list: list of review elements from page
+        '''
         self.get_site(url)
         review = self.browser.find_element_by_id('reviewswrapper')
         reviews = review.find_elements_by_xpath(".//div[@itemprop='review']")
         reviews_list = []
         for review in reviews:
-            review.get_attribute('outerHTML'))
+            review.get_attribute('outerHTML')
         return reviews_list
 
     def get_course_info(self):
@@ -231,6 +240,11 @@ class GolfAdvisor(ReviewScraper):
         '''
 
     def check_pages(self):
+        '''
+        Find the total number of review pages.
+        OUTPUT:
+            
+        '''
         review_count = int(self.browser.\
                            find_element_by_xpath("//span[@itemprop='reviewCount']")\
                            .get_attribute('innerHTML').strip('\)').strip('\('))
