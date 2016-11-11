@@ -214,7 +214,8 @@ class GolfAdvisor(ReviewScraper):
         course_doc['info'] = info
         return course_doc
 
-    '''def get_user_review(self, review):
+    '''
+    def get_user_review(self, review):
         user_review = {}
         author = review.find_element_by_xpath(".//span[@itemprop='author']")\
                  .get_attribute('innerHTML')
