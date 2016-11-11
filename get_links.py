@@ -29,6 +29,10 @@ class ReviewScraper(object):
         self.url = url
 
     def get_site(self, url):
+        '''
+        Condensed proess for getting site and clearing cookies. Issue related to
+        selenium not properly setting enable_cookies to false in phantomjs.
+        '''
         self.browser.get(url)
         self.browser.delete_all_cookies()
 
@@ -45,7 +49,8 @@ class ReviewScraper(object):
             links: list of links contained within the specific class element
         '''
         elements = self.browser.find_elements_by_class_name(class_name)
-        links = [element.get_attribute('href') for element in elements]
+        links = [element.find_elements_by_tag_name('a').get_attribute('href')\
+                 for element in elements]
         return links
 
 class GolfNow(ReviewScraper):
