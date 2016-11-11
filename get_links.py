@@ -23,9 +23,9 @@ class ReviewScraper(object):
     def __init__(self, url):
         self.browser = webdriver.PhantomJS(desired_capabilities=dcap,
                                            service_args=service_args)
-        print self.browser.get_window_size()
-        self.browser.maximize_window()
-        print self.browser.get_window_size()
+        # print self.browser.get_window_size()
+        # self.browser.maximize_window()
+        # print self.browser.get_window_size()
         self.url = url
 
     def get_site(self, url):
@@ -45,8 +45,7 @@ class ReviewScraper(object):
             links: list of links contained within the specific class element
         '''
         elements = self.browser.find_elements_by_class_name(class_name)
-        links = [element.find_element_by_tag_name('a').get_attribute('href') \
-                 for element in elements]
+        links = [element.get_attribute('href') for element in elements]
         return links
 
 class GolfNow(ReviewScraper):
@@ -113,6 +112,7 @@ class GolfAdvisor(ReviewScraper):
             courses: a set of all courses listed on the website
         '''
         self.get_site(self.url)
+        import pdb; pdb.set_trace()
         courses = set()
         countries = self.get_href_from_class('col-sm-6')
         for country in countries:
@@ -139,7 +139,7 @@ class GolfAdvisor(ReviewScraper):
         course_doc['reviews'] = []
         pages = self.check_pages()
         for i in xrange(pages):
-            course_doc['reviews'] += self.get_review(url + '?page={}'.format(i))
+            course_doc['reviews'] += self.get_reviews(url + '?page={}'.format(i))
         return course_doc
 
     def get_reviews(self, url):
@@ -152,11 +152,12 @@ class GolfAdvisor(ReviewScraper):
             reviews_list: list of review elements from page
         '''
         self.get_site(url)
+        import pdb; pdb.set_trace()
         review = self.browser.find_element_by_id('reviewswrapper')
         reviews = review.find_elements_by_xpath(".//div[@itemprop='review']")
         reviews_list = []
         for review in reviews:
-            review.get_attribute('outerHTML')
+            reviews_list.append(review.get_attribute('outerHTML'))
         return reviews_list
 
     def get_course_info(self):
@@ -241,9 +242,12 @@ class GolfAdvisor(ReviewScraper):
 
     def check_pages(self):
         '''
-        Find the total number of review pages.
+        Given the total number of reivews for a course determine the number
+        of pages that are populated with reviews. There are 20 reviews per page.
+        INPUT:
+            self: uses self.browser to find the total number of reviews
         OUTPUT:
-            
+            pages: int number of pages containing reviews
         '''
         review_count = int(self.browser.\
                            find_element_by_xpath("//span[@itemprop='reviewCount']")\
@@ -255,11 +259,10 @@ class GolfAdvisor(ReviewScraper):
 
 
 
-
 if __name__ == '__main__':
-    gn = GolfNow(urls[0])
-    courses = gn.get_courses()
-    # ga = GolfAdvisor(urls[1])
-    # courses.update(ga.get_courses())
+    # gn = GolfNow(urls[0])
+    # courses = gn.get_courses()
+    ga = GolfAdvisor(urls[1])
+    courses = ga.get_courses()
     with open('course_links.pkl', 'w') as f:
         pickle.dump(courses, f)
