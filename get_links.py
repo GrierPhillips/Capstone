@@ -3,6 +3,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import cPickle as pickle
 from bs4 import BeautifulSoup
 import re
+import math
 
 dcap = dict(DesiredCapabilities.PHANTOMJS)
 dcap["phantomjs.page.settings.userAgent"] = ("Chrome/15.0.87")
@@ -22,6 +23,9 @@ class ReviewScraper(object):
     def __init__(self, url):
         self.browser = webdriver.PhantomJS(desired_capabilities=dcap,
                                            service_args=service_args)
+        print self.browser.get_window_size()
+        self.browser.maximize_window()
+        print self.browser.get_window_size()
         self.url = url
 
     def get_site(self, url):
@@ -108,33 +112,43 @@ class GolfAdvisor(ReviewScraper):
         OUTPUT:
             courses: a set of all courses listed on the website
         '''
-        self.browser.get(self.url)
-        self.browser.delete_all_cookies()
+        self.get_site(self.url)
         courses = set()
         countries = self.get_href_from_class('col-sm-6')
         for country in countries:
-            self.browser.get(country)
-            self.browser.delete_all_cookies()
+            self.get_site(country)
             states = self.get_href_from_class('col-sm-6')
             for state in states:
-                self.browser.get(state)
-                self.browser.delete_all_cookies()
+                self.get_site(state)
                 cities = self.get_href_from_class('col-sm-6')
                 for city in cities:
-                    self.browser.get(city)
-                    self.browser.delete_all_cookies()
+                    self.get_site(city)
                     courses.update(self.get_href_from_class('title'))
         return courses
 
+    def get_all_reviews(self, url):
+        '''
+        Function to build the course document. Finds the total number of reivew
+        pages and gets reviews from each.
+        INPUT:
+            url: string of the base course website
+        OUTPUT:
+            course_doc: json object of course info and nested reviews
+        '''
+        course_doc = self.get_course_info()
+        course_doc['reviews'] = []
+        pages = self.check_pages()
+        for i in xrange(pages):
+            course_doc['reviews'] += self.get_review(url + '?page={}'.format(i))
+
     def get_reviews(self, url):
         self.get_site(url)
-        import pdb; pdb.set_trace()
         review = self.browser.find_element_by_id('reviewswrapper')
-        reviews = review.find_elements_by_xpath("//div[@itemprop='review']")
-        course_doc = self.get_course_info()
-        course_doc['reviews'] = {}
+        reviews = review.find_elements_by_xpath(".//div[@itemprop='review']")
+        reviews_list = []
         for review in reviews:
-            course_doc['reviews'].update(self.get_user_review(review))
+            review.get_attribute('outerHTML'))
+        return reviews_list
 
     def get_course_info(self):
         '''
@@ -148,10 +162,16 @@ class GolfAdvisor(ReviewScraper):
         name = self.browser.find_element_by_xpath("//span[@itemprop='name']")\
                                                   .get_attribute('innerHTML')
         course_doc['name'] = name
+        '''atts = self.browser\
+               .find_element_by_class_name('course-essential-info-top')\
+               .find_elements_by_tag_name('li')'''
+        # replace original atts value with outherhtml for parsing later
         atts = self.browser\
                .find_element_by_class_name('course-essential-info-top')\
-               .find_elements_by_tag_name('li')
-        # go through attributes and convert numbers to float or int
+               .get_attribute('outerHTML')
+        course_doc['attributes'] = atts
+        # TODO: Move this logic to the operations side when parsing docs
+        '''# go through attributes and convert numbers to float or int
         for att in atts[:-1]:
             name, val = att.get_attribute('innerHTML').split()
             name = name[:-1]
@@ -168,10 +188,10 @@ class GolfAdvisor(ReviewScraper):
             name, val = att.replace('\"', '').split('=')
             if val.find('.') != -1:
                 val = float(val)
-            course_doc[name] = val
-        address = self.browser.find_element_by_class_name('address')\
+            course_doc[name] = val'''
+        # replace address and info with complete html block
+        '''address = self.browser.find_element_by_class_name('address')\
                   .get_attribute('innerHTML')
-        course_doc['address'] = address
         key_info = self.browser.find_element_by_class_name('key-info')\
                    .find_elements_by_tag_name('div')
         arch_div = key_info.pop(3).get_attribute('innerHTML')
@@ -187,9 +207,14 @@ class GolfAdvisor(ReviewScraper):
         course_doc[name] = val
         for key in key_info[2:]:
             name, val = key.get_attribute('innerHTML').strip().split(': ')
-            course_doc[name] = val
+            course_doc[name] = val'''
+        info = self.browser\
+               .find_element_by_xpath("//div[@class='row course-info-top-row']")\
+               .get_attribute('outerHTML')
+        course_doc['info'] = info
+        return course_doc
 
-    def get_user_review(self, review):
+    '''def get_user_review(self, review):
         user_review = {}
         author = review.find_element_by_xpath(".//span[@itemprop='author']")\
                  .get_attribute('innerHTML')
@@ -201,8 +226,17 @@ class GolfAdvisor(ReviewScraper):
         user_review['age'] = age
         user_review['gender'] = gen
 
+        return course_doc'''
 
-        return course_doc
+    def check_pages(self):
+        review_count = int(self.browser.\
+                           find_element_by_xpath("//span[@itemprop='reviewCount']")\
+                           .get_attribute('innerHTML').strip('\)').strip('\('))
+        pages = 1
+        if review_count > 20:
+            pages = int(math.ceil(review_count / 20))
+        return pages
+
 
 
 
