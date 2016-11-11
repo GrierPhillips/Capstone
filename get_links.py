@@ -226,7 +226,8 @@ class GolfAdvisor(ReviewScraper):
         user_review['age'] = age
         user_review['gender'] = gen
 
-        return course_doc'''
+        return course_doc
+        '''
 
     def check_pages(self):
         review_count = int(self.browser.\
