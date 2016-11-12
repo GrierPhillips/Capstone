@@ -49,7 +49,9 @@ class ReviewScraper(object):
             links: list of links contained within the specific class element
         '''
         elements = self.browser.find_elements_by_class_name(class_name)
-        links = [element.find_elements_by_tag_name('a').get_attribute('href')\
+        if len(elements) == 0:
+            return 0
+        links = [element.find_element_by_tag_name('a').get_attribute('href')\
                  for element in elements]
         return links
 
@@ -120,16 +122,32 @@ class GolfAdvisor(ReviewScraper):
         import pdb; pdb.set_trace()
         courses = set()
         countries = self.get_href_from_class('col-sm-6')
-        for country in countries:
-            self.get_site(country)
-            states = self.get_href_from_class('col-sm-6')
-            for state in states:
-                self.get_site(state)
-                cities = self.get_href_from_class('col-sm-6')
-                for city in cities:
-                    self.get_site(city)
-                    courses.update(self.get_href_from_class('title'))
+        courses = self.walk_directory(countries, courses)
+        # for country in countries:
+        #     self.get_site(country)
+        #     states = self.get_href_from_class('col-sm-6')
+        #     if states == 0:
+        #         courses.update(self.get_href_from_class('teaser'))
+        #     else:
+        #         for state in states:
+        #             self.get_site(state)
+        #             cities = self.get_href_from_class('col-sm-6')
+        #             for city in cities:
+        #                 self.get_site(city)
+        #                 courses.update(self.get_href_from_class('teaser'))
         return courses
+
+    def walk_directory(self, elements, courses):
+        for element in elements:
+            self.get_site(element)
+            sub_elements = self.get_href_from_class('col-sm-6')
+            if sub_elements == 0:
+                courses.update(self.get_href_from_class('teaser'))
+            else:
+                self.walk_directory(sub_elements, courses)
+        return courses
+
+
 
     def get_all_reviews(self, url):
         '''
@@ -227,6 +245,9 @@ class GolfAdvisor(ReviewScraper):
                .find_element_by_xpath("//div[@class='row course-info-top-row']")\
                .get_attribute('outerHTML')
         course_doc['info'] = info
+        more = self.browser.find_element_by_xpath("//div[@id='more']")\
+               .get_attribute('outerHTML')
+        course_doc['more'] = more
         return course_doc
 
     '''
