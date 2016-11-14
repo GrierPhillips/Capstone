@@ -2,8 +2,12 @@ from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import cPickle as pickle
 from bs4 import BeautifulSoup
-import re
+# import re
 import math
+# import requests
+from stem import Signal
+from stem.control import Controller
+import requesocks
 
 dcap = dict(DesiredCapabilities.PHANTOMJS)
 dcap["phantomjs.page.settings.userAgent"] = ("Chrome/15.0.87")
@@ -16,6 +20,11 @@ service_args = [
     '--proxy-type=socks5',
     ]
 
+def renew_connection():
+    with Controller.from_port(port = 9051) as controller:
+        controller.authenticate(password="password")
+        controller.signal(Signal.NEWNYM)
+
 class ReviewScraper(object):
     '''
     Base class for building specific golf review website scraping objects.
@@ -23,6 +32,10 @@ class ReviewScraper(object):
     def __init__(self, url):
         self.browser = webdriver.PhantomJS(desired_capabilities=dcap,
                                            service_args=service_args)
+        self.session = requesocks.session()
+        self.session.proxies = {'http':  'socks5://127.0.0.1:9050',
+                                'https': 'socks5://127.0.0.1:9050'}
+
         # print self.browser.get_window_size()
         # self.browser.maximize_window()
         # print self.browser.get_window_size()
@@ -109,6 +122,8 @@ class GolfAdvisor(ReviewScraper):
     Class containing methods for scraping information from the GolfAdvisor
     website.
     '''
+
+
     def get_courses(self):
         '''
         Function to crawl through all cities, states, and countries to collect
@@ -118,11 +133,18 @@ class GolfAdvisor(ReviewScraper):
         OUTPUT:
             courses: a set of all courses listed on the website
         '''
-        self.get_site(self.url)
+        # self.get_site(self.url)
         import pdb; pdb.set_trace()
+        renew_connection()
+        r = session.get(self.url).text
+
+
         courses = set()
-        countries = self.get_href_from_class('col-sm-6')
-        courses = self.walk_directory(countries, courses)
+        # countries = self.get_href_from_class('col-sm-6')
+        soup = BeautifulSoup(r, 'html.parser')
+        countries = soup.find_all('li', class_='col-sm-6')
+        courses = self.walk_directory(countries, courses, self.url)
+        # courses = self.walk_directory(countries, courses)
         # for country in countries:
         #     self.get_site(country)
         #     states = self.get_href_from_class('col-sm-6')
@@ -137,14 +159,21 @@ class GolfAdvisor(ReviewScraper):
         #                 courses.update(self.get_href_from_class('teaser'))
         return courses
 
-    def walk_directory(self, elements, courses):
+    def walk_directory(self, elements, courses, url):
         for element in elements:
-            self.get_site(element)
-            sub_elements = self.get_href_from_class('col-sm-6')
-            if sub_elements == 0:
-                courses.update(self.get_href_from_class('teaser'))
+            site = url + element.a['href']
+            r = session.get(site).text
+            renew_connection()
+            # self.get_site(element)
+            # sub_elements = self.get_href_from_class('col-sm-6')
+            soup = BeautifulSoup(r, 'html.parser')
+            sub_elements = soup.find_all('li', class_='col-sm-6')
+            if len(sub_elements) == 0:
+                # courses.update(self.get_href_from_class('teaser'))
+                courses.update([x.a['href'] for x in soup.\
+                                find_all('div', class_='teaser')])
             else:
-                self.walk_directory(sub_elements, courses)
+                self.walk_directory(sub_elements, courses, site)
         return courses
 
 
