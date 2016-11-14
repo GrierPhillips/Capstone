@@ -6,8 +6,10 @@ from stem.control import Controller
 import requesocks
 from urlparse import urljoin
 import boto3
+from boto3.dynamodb.conditions import Key, Attr
 import os
 import threading
+import numpy as np
 
 class GolfAdvisor(object):
     '''
@@ -30,7 +32,8 @@ class GolfAdvisor(object):
         # self.session = requesocks.session()
         # self.session.proxies = {'http':  'socks5://127.0.0.1:9050',
         #                         'https': 'socks5://127.0.0.1:9050'}
-        # self.url = 'http://www.golfadvisor.com/course-directory/'
+        self.url = 'http://www.golfadvisor.com/course-directory/'
+        self.requests = 0
 
     @staticmethod
     def renew_connection():
@@ -54,8 +57,11 @@ class GolfAdvisor(object):
         OUTPUT:
             html: string. html of desired site.
         '''
-        html = self.session.get(url).text
-        self.renew_connection()
+        html = self.s1.get(url).text
+        self.requests += 1
+        if self.requests > 12:
+            self.renew_connection()
+            self.requests = 0
         return html
 
     def get_courses(self):
@@ -67,7 +73,7 @@ class GolfAdvisor(object):
         OUTPUT:
             courses: a set of all courses listed on the website
         '''
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         html = self.get_site(self.url)
         courses = set()
         soup = BeautifulSoup(html, 'html.parser')
@@ -98,12 +104,13 @@ class GolfAdvisor(object):
         OUTPUT:
             course_doc: json object of course info and nested reviews
         '''
+        # import pdb; pdb.set_trace()
         html = self.get_site(url)
         soup = BeautifulSoup(html, 'html.parser')
         course_doc = self.get_course_info(soup)
         course_doc['reviews'] = []
         pages = self.check_pages(soup)
-        for i in xrange(pages):
+        for i in xrange(pages + 1):
             course_doc['reviews'] += self.get_reviews(url + '?page={}'.format(i))
         return course_doc
 
@@ -222,7 +229,7 @@ class GolfAdvisor(object):
         '''
         table.put_item(Item=record)
 
-    def get_and_store_reviews(self, urls, table):
+    def get_and_store_reviews(self, urls, read_table, write_table):
         '''
         Complete pipeline for getting reviews from a list of pages, creating a
         course record in the form of a dictionary (primary key='Name'), and
@@ -233,11 +240,21 @@ class GolfAdvisor(object):
         OUTPUT:
             None
         '''
-        for url in urls:
-            course_doc = self.get_all_reviews(url)
-            self.write_to_dynamodb(course_doc, table)
+        courses = read_table.scan(FilterExpression=Attr('Status').eq('not checked'))['Items']
+        course = courses[np.random.randint(len(courses))]
+        name = course['Course']
+        url = urljoin(self.url, name)
+        read_table.update_item(Key={'Course': name},
+                               UpdateExpression='SET Status = :val1',
+                               ExpressionAttributeValues={':val1': 'checking'})
+        course_doc = self.get_all_reviews(url)
+        self.write_to_dynamodb(course_doc, write_table)
+        read_table.update_item(Key={'Course': name},
+                               UpdateExpression='SET Status = :val1',
+                               ExpressionAttributeValues={':val1': 'checked'})
 
-    def parallel_scrape(self, links, table):
+
+    def parallel_scrape_reviews(self, links, read_table, write_table):
         '''
         Setup and implement threads for parallel scraping of course reviews and
         writing results to dynamodb.
@@ -250,23 +267,28 @@ class GolfAdvisor(object):
         for i in range(len(self.sessions)):
             thread = threading.Thread(name=i,
                                       target=self.get_and_store_reviews,
-                                      args=(links[i], table))
+                                      args=(links[i], read_table, write_table))
             jobs.append(thread)
             thread.start()
         for j in jobs:
             j.join()
 
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
 
 if __name__ == '__main__':
     ga = GolfAdvisor()
-
     if os.exists('course_links.pkl'):
         with open('course_links.pkl', 'r') as f:
             courses = pickle.load(f)
-        ddb = boto3.resource('dynamodb')
-        table = ddb.Table('Course_Reviews')
-        for course in courses:
-            ga.get_and_store_reviews(course, table)
+        n = int(math.ceil(len(courses) / 6.))
+        links = list(chunks(list(courses), n))
+        ddb = boto3.resource('dynamodb', region_name='us-west-2')
+        write_table = ddb.Table('Course_Reviews')
+        read_table = ddb.Table('Scrape_Status')
+        ga.parallel_scrape_reviews(links, read_table, write_table)
     else:
         courses = ga.get_courses()
         with open('course_links.pkl', 'w') as f:
