@@ -1,5 +1,3 @@
-from selenium import webdriver
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import cPickle as pickle
 from bs4 import BeautifulSoup
 # import re
@@ -10,65 +8,42 @@ from stem.control import Controller
 import requesocks
 from urlparse import urljoin
 
-dcap = dict(DesiredCapabilities.PHANTOMJS)
-dcap["phantomjs.page.settings.userAgent"] = ("Chrome/15.0.87")
-
-urls = ['https://www.golfnow.com/course-directory',
-        'http://www.golfadvisor.com/course-directory/']
-
-service_args = [
-    '--proxy=127.0.0.1:9050',
-    '--proxy-type=socks5',
-    ]
-
-def renew_connection():
-    with Controller.from_port(port = 9051) as controller:
-        controller.authenticate(password="password")
-        controller.signal(Signal.NEWNYM)
-
-class ReviewScraper(object):
-    '''
-    Base class for building specific golf review website scraping objects.
-    '''
-
-    def get_href_from_class(self, class_name):
-        '''
-        Function to pull links from withing elements of a specific class name.
-        For example, given <div class='course'><a href=$LINK></div> the function
-        would return $LINK.
-        INPUT:
-            self: uses self.browser
-            class_name: string of the class name for the element we want to find
-                links within
-        OUTPUT:
-            links: list of links contained within the specific class element
-        '''
-        elements = self.browser.find_elements_by_class_name(class_name)
-        if len(elements) == 0:
-            return 0
-        links = [element.find_element_by_tag_name('a').get_attribute('href')\
-                 for element in elements]
-        return links
-
-class GolfAdvisor(ReviewScraper):
+class GolfAdvisor(object):
     '''
     Class containing methods for scraping information from the GolfAdvisor
     website.
     '''
-    def __init__(self, url):
+    def __init__(self):
         self.session = requesocks.session()
         self.session.proxies = {'http':  'socks5://127.0.0.1:9050',
                                 'https': 'socks5://127.0.0.1:9050'}
-        self.url = url
+        self.url = 'http://www.golfadvisor.com/course-directory/'
+
+    @staticmethod
+    def renew_connection():
+        '''
+        Change tor exit node. This will allow cycling of IP addresses such that
+        no address makes 2 requests in a row.
+        INPUT:
+            None
+        OUTPUT:
+            None
+        '''
+        with Controller.from_port(port = 9051) as controller:
+            controller.authenticate(password="password")
+            controller.signal(Signal.NEWNYM)
 
     def get_site(self, url):
         '''
-        Condensed proess for getting site and clearing cookies. Issue related to
-        selenium not properly setting enable_cookies to false in phantomjs.
+        Condensed process for getting site html and changing ip address.
+        INPUT:
+            url: string. website to pull html from.
+        OUTPUT:
+            html: string. html of desired site.
         '''
-        r = self.session.get(url).text
-        renew_connection()
-        return r
+        html = self.session.get(url).text
+        self.renew_connection()
+        return html
 
     def get_courses(self):
         '''
@@ -245,9 +220,7 @@ class GolfAdvisor(ReviewScraper):
 
 
 if __name__ == '__main__':
-    # gn = GolfNow(urls[0])
-    # courses = gn.get_courses()
-    ga = GolfAdvisor(urls[1])
+    ga = GolfAdvisor()
     courses = ga.get_courses()
     with open('course_links.pkl', 'w') as f:
         pickle.dump(courses, f)
