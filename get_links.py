@@ -30,25 +30,6 @@ class ReviewScraper(object):
     '''
     Base class for building specific golf review website scraping objects.
     '''
-    def __init__(self, url):
-        self.browser = webdriver.PhantomJS(desired_capabilities=dcap,
-                                           service_args=service_args)
-        self.session = requesocks.session()
-        self.session.proxies = {'http':  'socks5://127.0.0.1:9050',
-                                'https': 'socks5://127.0.0.1:9050'}
-
-        # print self.browser.get_window_size()
-        # self.browser.maximize_window()
-        # print self.browser.get_window_size()
-        self.url = url
-
-    def get_site(self, url):
-        '''
-        Condensed proess for getting site and clearing cookies. Issue related to
-        selenium not properly setting enable_cookies to false in phantomjs.
-        '''
-        self.browser.get(url)
-        self.browser.delete_all_cookies()
 
     def get_href_from_class(self, class_name):
         '''
@@ -69,61 +50,25 @@ class ReviewScraper(object):
                  for element in elements]
         return links
 
-class GolfNow(ReviewScraper):
-    '''
-    Class containing methods for scraping information from the GolfNow website.
-    '''
-    def get_courses(self):
-        '''
-        Function to crawl through all cities, states, and countries to collect
-        complete list of all course links.
-        INPUT:
-            self: uses self.url and self.browser
-        OUTPUT:
-            courses: a set of all courses listed on the website
-        '''
-        self.get_site(self.url)
-        countries = self.get_href_from_class('country-cube')
-        courses = set()
-        for country in countries:
-            self.get_site(country)
-            states = self.get_href_from_class('col-20')
-            for state in states:
-                self.get_site(state)
-                cities = [city.find_element_by_tag_name('a')\
-                          .get_attribute('href') for city in self.browser\
-                          .find_elements_by_class_name('city-cube')]
-                for city in cities:
-                    self.get_site(city)
-                    courses.update(self.browser\
-                                   .find_element_by_class_name('featured'))
-                    courses.update([result.find_element_by_tag_name('a')\
-                                    .get_attribute('href') for result in \
-                                    self.browser\
-                                    .find_elements_by_class_name('result')])
-
-        'Test Function to return course in aruba.'
-        # self.get_site(countries[0])
-        # states = self.get_href_from_class('col-20')
-        # self.get_site(states[0])
-        # cities = self.get_href_from_class('city-cube')
-        # self.get_site(cities[0])
-        # courses.update(self.get_href_from_class('featured'))
-        # courses.update(self.get_href_from_class('result'))
-        return courses
-
-    def get_reviews(self, course_url):
-        import pdb; pdb.set_trace()
-        self.get_site(course_url)
-        all_reviews = self.browser.find_element_by_id('ListReviews')
-        rows = all_reviews.find_elements_by_class_name('row')
-
 class GolfAdvisor(ReviewScraper):
     '''
     Class containing methods for scraping information from the GolfAdvisor
     website.
     '''
+    def __init__(self, url):
+        self.session = requesocks.session()
+        self.session.proxies = {'http':  'socks5://127.0.0.1:9050',
+                                'https': 'socks5://127.0.0.1:9050'}
+        self.url = url
 
+    def get_site(self, url):
+        '''
+        Condensed proess for getting site and clearing cookies. Issue related to
+        selenium not properly setting enable_cookies to false in phantomjs.
+        '''
+        r = self.session.get(url).text
+        renew_connection()
+        return r
 
     def get_courses(self):
         '''
@@ -134,15 +79,11 @@ class GolfAdvisor(ReviewScraper):
         OUTPUT:
             courses: a set of all courses listed on the website
         '''
-        # self.get_site(self.url)
         # import pdb; pdb.set_trace()
-        renew_connection()
-        r = self.session.get(self.url).text
-
-
+        html = self.get_site(self.url)
         courses = set()
         # countries = self.get_href_from_class('col-sm-6')
-        soup = BeautifulSoup(r, 'html.parser')
+        soup = BeautifulSoup(html, 'html.parser')
         countries = soup.find_all('li', class_='col-sm-6')
         courses = self.walk_directory(countries, courses, self.url)
         # courses = self.walk_directory(countries, courses)
@@ -164,16 +105,16 @@ class GolfAdvisor(ReviewScraper):
         for element in elements:
             site = urljoin(url, element.a['href'])
             # site = url[:-18] + element.a['href']
-            r = self.session.get(site).text
-            renew_connection()
+            html = self.get_site(site)
             # self.get_site(element)
             # sub_elements = self.get_href_from_class('col-sm-6')
-            soup = BeautifulSoup(r, 'html.parser')
+            soup = BeautifulSoup(html, 'html.parser')
             sub_elements = soup.find_all('li', class_='col-sm-6')
             if len(sub_elements) == 0:
                 # courses.update(self.get_href_from_class('teaser'))
                 courses.update([x.a['href'] for x in soup.\
                                 find_all('div', class_='teaser')])
+                print 'Courses updated with courses from {}'.format(element.a['href'])
             else:
                 self.walk_directory(sub_elements, courses, site)
         return courses
@@ -189,9 +130,11 @@ class GolfAdvisor(ReviewScraper):
         OUTPUT:
             course_doc: json object of course info and nested reviews
         '''
-        course_doc = self.get_course_info()
+        html = self.get_site(url)
+        soup = BeautifulSoup(html, 'html.parser')
+        course_doc = self.get_course_info(soup)
         course_doc['reviews'] = []
-        pages = self.check_pages()
+        pages = self.check_pages(soup)
         for i in xrange(pages):
             course_doc['reviews'] += self.get_reviews(url + '?page={}'.format(i))
         return course_doc
@@ -200,39 +143,28 @@ class GolfAdvisor(ReviewScraper):
         '''
         Retrieve all reviews on a single page.
         INPUT:
-            self: uses self.browser for retrieving elements from page
             url: string of webpage address from which to retrieve reviews
         OUTPUT:
-            reviews_list: list of review elements from page
+            reviews: list of review elements from page. Full html.
         '''
-        self.get_site(url)
-        import pdb; pdb.set_trace()
-        review = self.browser.find_element_by_id('reviewswrapper')
-        reviews = review.find_elements_by_xpath(".//div[@itemprop='review']")
-        reviews_list = []
-        for review in reviews:
-            reviews_list.append(review.get_attribute('outerHTML'))
-        return reviews_list
+        html = self.get_site(url)
+        soup = BeautifulSoup(html, 'html.parser')
+        reviews = soup.find_all(itemprop='review')
+        return reviews
 
-    def get_course_info(self):
+    def get_course_info(self, soup):
         '''
-        Create an entry for a golf course, including course stats and info
+        Create an entry for a golf course, including course stats and info.
+        Brings in entire html of desired sections for parsing later.
         INPUT:
-            self: uses self.browser to find and return data
+            soup: parsed html from BeautifulSoup
         OUTPUT:
             course_doc: a dictionary containing the course stats and info
         '''
         course_doc = {}
-        name = self.browser.find_element_by_xpath("//span[@itemprop='name']")\
-                                                  .get_attribute('innerHTML')
+        name = soup.find(itemprop='name').text
         course_doc['name'] = name
-        '''atts = self.browser\
-               .find_element_by_class_name('course-essential-info-top')\
-               .find_elements_by_tag_name('li')'''
-        # replace original atts value with outherhtml for parsing later
-        atts = self.browser\
-               .find_element_by_class_name('course-essential-info-top')\
-               .get_attribute('outerHTML')
+        atts = soup.find(class_='course-essential-info-top')
         course_doc['attributes'] = atts
         # TODO: Move this logic to the operations side when parsing docs
         '''# go through attributes and convert numbers to float or int
@@ -272,12 +204,9 @@ class GolfAdvisor(ReviewScraper):
         for key in key_info[2:]:
             name, val = key.get_attribute('innerHTML').strip().split(': ')
             course_doc[name] = val'''
-        info = self.browser\
-               .find_element_by_xpath("//div[@class='row course-info-top-row']")\
-               .get_attribute('outerHTML')
+        info = soup.find(class_='row course-info-top-row')
         course_doc['info'] = info
-        more = self.browser.find_element_by_xpath("//div[@id='more']")\
-               .get_attribute('outerHTML')
+        more = soup.find(id='more')
         course_doc['more'] = more
         return course_doc
 
@@ -297,18 +226,17 @@ class GolfAdvisor(ReviewScraper):
         return course_doc
         '''
 
-    def check_pages(self):
+    def check_pages(self, soup):
         '''
         Given the total number of reivews for a course determine the number
         of pages that are populated with reviews. There are 20 reviews per page.
         INPUT:
-            self: uses self.browser to find the total number of reviews
+            soup: parsed html from BeautifulSoup
         OUTPUT:
             pages: int number of pages containing reviews
         '''
-        review_count = int(self.browser.\
-                           find_element_by_xpath("//span[@itemprop='reviewCount']")\
-                           .get_attribute('innerHTML').strip('\)').strip('\('))
+        review_count = float(soup.find(itemprop='reviewCount').text.strip('\)')\
+                           .strip('\('))
         pages = 1
         if review_count > 20:
             pages = int(math.ceil(review_count / 20))
