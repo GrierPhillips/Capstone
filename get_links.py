@@ -16,6 +16,7 @@ class GolfAdvisor(object):
     website.
     '''
     def __init__(self):
+        # TODO: implement threading with tor for scraping in parallel perhaps using method found at http://stackoverflow.com/questions/14321214/how-to-run-multiple-tor-processes-at-once-with-different-exit-ips
         self.session = requesocks.session()
         self.session.proxies = {'http':  'socks5://127.0.0.1:9050',
                                 'https': 'socks5://127.0.0.1:9050'}
@@ -56,39 +57,20 @@ class GolfAdvisor(object):
         OUTPUT:
             courses: a set of all courses listed on the website
         '''
-        # import pdb; pdb.set_trace()
         html = self.get_site(self.url)
         courses = set()
-        # countries = self.get_href_from_class('col-sm-6')
         soup = BeautifulSoup(html, 'html.parser')
         countries = soup.find_all('li', class_='col-sm-6')
         courses = self.walk_directory(countries, courses, self.url)
-        # courses = self.walk_directory(countries, courses)
-        # for country in countries:
-        #     self.get_site(country)
-        #     states = self.get_href_from_class('col-sm-6')
-        #     if states == 0:
-        #         courses.update(self.get_href_from_class('teaser'))
-        #     else:
-        #         for state in states:
-        #             self.get_site(state)
-        #             cities = self.get_href_from_class('col-sm-6')
-        #             for city in cities:
-        #                 self.get_site(city)
-        #                 courses.update(self.get_href_from_class('teaser'))
         return courses
 
     def walk_directory(self, elements, courses, url):
         for element in elements:
             site = urljoin(url, element.a['href'])
-            # site = url[:-18] + element.a['href']
             html = self.get_site(site)
-            # self.get_site(element)
-            # sub_elements = self.get_href_from_class('col-sm-6')
             soup = BeautifulSoup(html, 'html.parser')
             sub_elements = soup.find_all('li', class_='col-sm-6')
             if len(sub_elements) == 0:
-                # courses.update(self.get_href_from_class('teaser'))
                 courses.update([x.a['href'] for x in soup.\
                                 find_all('div', class_='teaser')])
                 print 'Courses updated with courses from {}'.format(element.a['href'])
