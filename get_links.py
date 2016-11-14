@@ -7,6 +7,7 @@ from stem import Signal
 from stem.control import Controller
 import requesocks
 from urlparse import urljoin
+import boto3
 
 class GolfAdvisor(object):
     '''
@@ -94,8 +95,6 @@ class GolfAdvisor(object):
                 self.walk_directory(sub_elements, courses, site)
         return courses
 
-
-
     def get_all_reviews(self, url):
         '''
         Function to build the course document. Finds the total number of reivew
@@ -138,7 +137,7 @@ class GolfAdvisor(object):
         '''
         course_doc = {}
         name = soup.find(itemprop='name').text
-        course_doc['name'] = name
+        course_doc['Name'] = name
         atts = soup.find(class_='course-essential-info-top')
         course_doc['attributes'] = atts
         # TODO: Move this logic to the operations side when parsing docs
@@ -217,6 +216,31 @@ class GolfAdvisor(object):
             pages = int(math.ceil(review_count / 20))
         return pages
 
+    def write_to_dynamodb(self, record):
+        '''
+        Write to dynamodb using boto3.
+        INPUT:
+            record: dictionary. course_doc containing keys = ['Name',
+            'attributes', 'info', 'more', 'reviews']
+        OUTPUT;
+            None
+        '''
+        client = boto3.resource('dynamodb')
+        table = client.Table('Course_Reviews')
+        table.put_item(Item=record)
+
+    def get_and_store_reviews(self, url):
+        '''
+        Complete pipeline for getting reviews from a page, creating a course
+        record in the form of a dictionary (primary key='Name'), and storing
+        reviews in Dynamodb.
+        INPUT:
+            url: string. website address for a course
+        OUTPUT:
+            None
+        '''
+        course_doc = self.get_all_reviews(url)
+        self.write_to_dynamodb(course_doc)
 
 
 if __name__ == '__main__':
