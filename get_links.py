@@ -8,6 +8,7 @@ import math
 from stem import Signal
 from stem.control import Controller
 import requesocks
+from urlparse import urljoin
 
 dcap = dict(DesiredCapabilities.PHANTOMJS)
 dcap["phantomjs.page.settings.userAgent"] = ("Chrome/15.0.87")
@@ -136,7 +137,7 @@ class GolfAdvisor(ReviewScraper):
         # self.get_site(self.url)
         import pdb; pdb.set_trace()
         renew_connection()
-        r = session.get(self.url).text
+        r = self.session.get(self.url).text
 
 
         courses = set()
@@ -161,8 +162,9 @@ class GolfAdvisor(ReviewScraper):
 
     def walk_directory(self, elements, courses, url):
         for element in elements:
-            site = url + element.a['href']
-            r = session.get(site).text
+            site = urljoin(url, element.a['href'])
+            # site = url[:-18] + element.a['href']
+            r = self.session.get(site).text
             renew_connection()
             # self.get_site(element)
             # sub_elements = self.get_href_from_class('col-sm-6')
