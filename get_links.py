@@ -135,7 +135,7 @@ class GolfAdvisor(ReviewScraper):
             courses: a set of all courses listed on the website
         '''
         # self.get_site(self.url)
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         renew_connection()
         r = self.session.get(self.url).text
 
