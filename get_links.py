@@ -1,14 +1,13 @@
 import cPickle as pickle
 from bs4 import BeautifulSoup
-# import re
 import math
-# import requests
 from stem import Signal
 from stem.control import Controller
 import requesocks
 from urlparse import urljoin
 import boto3
 import os
+import threading
 
 class GolfAdvisor(object):
     '''
@@ -17,10 +16,21 @@ class GolfAdvisor(object):
     '''
     def __init__(self):
         # TODO: implement threading with tor for scraping in parallel perhaps using method found at http://stackoverflow.com/questions/14321214/how-to-run-multiple-tor-processes-at-once-with-different-exit-ips
-        self.session = requesocks.session()
-        self.session.proxies = {'http':  'socks5://127.0.0.1:9050',
-                                'https': 'socks5://127.0.0.1:9050'}
-        self.url = 'http://www.golfadvisor.com/course-directory/'
+        proxies = [9050, 9052, 9053, 9054, 9055, 9056]
+        self.s1 = requesocks.session()
+        self.s2 = requesocks.session()
+        self.s3 = requesocks.session()
+        self.s4 = requesocks.session()
+        self.s5 = requesocks.session()
+        self.s6 = requesocks.session()
+        self.sessions = [self.s1, self.s2, self.s3, self.s4, self.s5, self.s6]
+        for i, s in enumerate(self.sessions):
+            s.proxies = {'http':  'socks5://127.0.0.1:{}'.format(proxies[i]),
+                         'https': 'socks5://127.0.0.1:{}'.format(proxies[i])}
+        # self.session = requesocks.session()
+        # self.session.proxies = {'http':  'socks5://127.0.0.1:9050',
+        #                         'https': 'socks5://127.0.0.1:9050'}
+        # self.url = 'http://www.golfadvisor.com/course-directory/'
 
     @staticmethod
     def renew_connection():
@@ -57,6 +67,7 @@ class GolfAdvisor(object):
         OUTPUT:
             courses: a set of all courses listed on the website
         '''
+        import pdb; pdb.set_trace()
         html = self.get_site(self.url)
         courses = set()
         soup = BeautifulSoup(html, 'html.parser')
@@ -211,19 +222,39 @@ class GolfAdvisor(object):
         '''
         table.put_item(Item=record)
 
-    def get_and_store_reviews(self, url, table):
+    def get_and_store_reviews(self, urls, table):
         '''
-        Complete pipeline for getting reviews from a page, creating a course
-        record in the form of a dictionary (primary key='Name'), and storing
-        reviews in Dynamodb.
+        Complete pipeline for getting reviews from a list of pages, creating a
+        course record in the form of a dictionary (primary key='Name'), and
+        storing reviews in Dynamodb.
         INPUT:
-            url: string. website address for a course
+            url: list. website addresses for a list of courses
             table: boto3 dynamodb table object
         OUTPUT:
             None
         '''
-        course_doc = self.get_all_reviews(url)
-        self.write_to_dynamodb(course_doc, table)
+        for url in urls:
+            course_doc = self.get_all_reviews(url)
+            self.write_to_dynamodb(course_doc, table)
+
+    def parallel_scrape(self, links, table):
+        '''
+        Setup and implement threads for parallel scraping of course reviews and
+        writing results to dynamodb.
+        INPUT:
+            table: boto3 dynamodb table object
+        OUTPUT:
+            None
+        '''
+        jobs = []
+        for i in range(len(self.sessions)):
+            thread = threading.Thread(name=i,
+                                      target=self.get_and_store_reviews,
+                                      args=(links[i], table))
+            jobs.append(thread)
+            thread.start()
+        for j in jobs:
+            j.join()
 
 
 if __name__ == '__main__':
