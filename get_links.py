@@ -8,6 +8,7 @@ from stem.control import Controller
 import requesocks
 from urlparse import urljoin
 import boto3
+import os
 
 class GolfAdvisor(object):
     '''
@@ -216,35 +217,44 @@ class GolfAdvisor(object):
             pages = int(math.ceil(review_count / 20))
         return pages
 
-    def write_to_dynamodb(self, record):
+    def write_to_dynamodb(self, record, table):
         '''
         Write to dynamodb using boto3.
         INPUT:
             record: dictionary. course_doc containing keys = ['Name',
-            'attributes', 'info', 'more', 'reviews']
+                'attributes', 'info', 'more', 'reviews']
+            table: boto3 dynamodb table object
         OUTPUT;
             None
         '''
-        client = boto3.resource('dynamodb')
-        table = client.Table('Course_Reviews')
         table.put_item(Item=record)
 
-    def get_and_store_reviews(self, url):
+    def get_and_store_reviews(self, url, table):
         '''
         Complete pipeline for getting reviews from a page, creating a course
         record in the form of a dictionary (primary key='Name'), and storing
         reviews in Dynamodb.
         INPUT:
             url: string. website address for a course
+            table: boto3 dynamodb table object
         OUTPUT:
             None
         '''
         course_doc = self.get_all_reviews(url)
-        self.write_to_dynamodb(course_doc)
+        self.write_to_dynamodb(course_doc, table)
 
 
 if __name__ == '__main__':
     ga = GolfAdvisor()
-    courses = ga.get_courses()
-    with open('course_links.pkl', 'w') as f:
-        pickle.dump(courses, f)
+
+    if os.exists('course_links.pkl'):
+        with open('course_links.pkl', 'r') as f:
+            courses = pickle.load(f)
+        ddb = boto3.resource('dynamodb')
+        table = ddb.Table('Course_Reviews')
+        for course in courses:
+            ga.get_and_store_reviews(course, table)
+    else:
+        courses = ga.get_courses()
+        with open('course_links.pkl', 'w') as f:
+            pickle.dump(courses, f)
