@@ -34,6 +34,7 @@ class GolfAdvisor(object):
         #                         'https': 'socks5://127.0.0.1:9050'}
         self.url = 'http://www.golfadvisor.com/course-directory/'
         self.review_num = 0
+        self.requests = 0
 
     @staticmethod
     def renew_connection():
@@ -58,11 +59,9 @@ class GolfAdvisor(object):
             html: string. html of desired site.
         '''
         html = self.s1.get(url).text
-        self.renew_connection()
-        # self.requests += 1
-        # if self.requests > 12:
-        #     self.renew_connection()
-            # self.requests = 0
+        if self.requests > 20:
+            self.requests = 0
+            self.renew_connection()
         return html
 
     def get_courses(self):
@@ -139,7 +138,7 @@ class GolfAdvisor(object):
         '''
         course_doc = {}
         name = soup.find(itemprop='name').text
-        course_doc['Name'] = name
+        course_doc['Course'] = name
         atts = str(soup.find(class_='course-essential-info-top'))
         course_doc['attributes'] = atts
         # TODO: Move this logic to the operations side when parsing docs
@@ -222,7 +221,7 @@ class GolfAdvisor(object):
         '''
         Write to dynamodb using boto3.
         INPUT:
-            record: dictionary. course_doc containing keys = ['Name',
+            record: dictionary. course_doc containing keys = ['Course',
                 'attributes', 'info', 'more', 'reviews']
             table: boto3 dynamodb table object
         OUTPUT;
@@ -230,21 +229,11 @@ class GolfAdvisor(object):
         '''
 
         table.put_item(Item=record)
-        # if table.name == 'Course_Info':
-        #     table.update_item(Key={'Name': record['Name']},
-        #                       UpdateExpression='SET #r = :val1',
-        #                       ExpressionAttributeValues={':val1': record['Review']},
-        #                       ExpressionAttributeNames={'#r': 'Review'}))
-        # else:
-        #     table.update_item(Key={'Name': record['Name']},
-        #                       UpdateExpression='SET #r = :val1',
-        #                       ExpressionAttributeValues={':val1': record['Review']},
-        #                       ExpressionAttributeNames={'#r': 'Review'}))
 
-    def get_and_store_reviews(self, url, read_table, info_table, review_table):
+    def get_and_store_reviews(self, urls, read_table, info_table, review_table):
         '''
         Complete pipeline for getting reviews from a list of pages, creating a
-        course record in the form of a dictionary (primary key='Name'), and
+        course record in the form of a dictionary (primary key='Course'), and
         storing reviews in Dynamodb.
         INPUT:
             url: list. website addresses for a list of courses
@@ -254,31 +243,32 @@ class GolfAdvisor(object):
         '''
         # courses = read_table.scan(FilterExpression=Attr('Status').eq('not checked'))['Items']
         # course = courses[np.random.randint(len(courses))]
-        name = url
-        url = urljoin(self.url, name)
-        read_table.update_item(Key={'Course': name},
-                               UpdateExpression='SET #r = :val1, #s = :val2',
-                               ExpressionAttributeValues={':val1': 'in process',
-                                                          ':val2': 'checking'},
-                               ExpressionAttributeNames={'#r': 'Result',
-                                                         '#s': 'Status'})
-        info, reviews = self.get_all_reviews(url)
-        self.write_to_dynamodb(info, info_table)
-        for review in reviews:
-            review = {'Review_Id': self.review_num,
-                      'Name': name,
-                      'Review': review}
-            self.write_to_dynamodb(review, review_table)
-            self.review_num += 1
-        read_table.update_item(Key={'Course': name},
-                               UpdateExpression='SET #r = :val1, #s = :val2',
-                               ExpressionAttributeValues={':val1': 'returned',
-                                                          ':val2': 'checked'},
-                               ExpressionAttributeNames={'#r': 'Result',
-                                                         '#s': 'Status'})
+        # name = course['Course']
+        for url in urls:
+            url = urljoin(self.url, url)
+            read_table.update_item(Key={'Course': url},
+                                   UpdateExpression='SET #r = :val1, #s = :val2',
+                                   ExpressionAttributeValues={':val1': 'in process',
+                                                              ':val2': 'checking'},
+                                   ExpressionAttributeNames={'#r': 'Result',
+                                                             '#s': 'Status'})
+            info, reviews = self.get_all_reviews(url)
+            self.write_to_dynamodb(info, info_table)
+            for review in reviews:
+                review = {'Review_Id': self.review_num,
+                          'Course': url,
+                          'Review': review}
+                self.write_to_dynamodb(review, review_table)
+                self.review_num += 1
+            read_table.update_item(Key={'Course': url},
+                                   UpdateExpression='SET #r = :val1, #s = :val2',
+                                   ExpressionAttributeValues={':val1': 'returned',
+                                                              ':val2': 'checked'},
+                                   ExpressionAttributeNames={'#r': 'Result',
+                                                             '#s': 'Status'})
 
 
-    def parallel_scrape_reviews(self, links, read_table, write_table):
+    def parallel_scrape_reviews(self, links, read_table, info_table, review_table):
         '''
         Setup and implement threads for parallel scraping of course reviews and
         writing results to dynamodb.
@@ -291,7 +281,7 @@ class GolfAdvisor(object):
         for i in range(len(self.sessions)):
             thread = threading.Thread(name=i,
                                       target=self.get_and_store_reviews,
-                                      args=(links[i], read_table, write_table))
+                                      args=(links[i], read_table, info_table, review_table))
             jobs.append(thread)
             thread.start()
         for j in jobs:
@@ -307,15 +297,16 @@ if __name__ == '__main__':
     if os.path.exists('course_links.pkl'):
         with open('course_links.pkl', 'r') as f:
             courses = pickle.load(f)
-        # n = int(math.ceil(len(courses) / 6.))
-        # links = list(chunks(list(courses), n))
+        n = int(math.ceil(len(courses) / 6.))
+        links = list(chunks(list(courses), n))
         courses = list(courses)
         ddb = boto3.resource('dynamodb', region_name='us-west-2')
         info_table = ddb.Table('Course_Info')
-        review_table = ddb.Table('Course_Reviews')
+        review_table = ddb.Table('Course_Review')
         read_table = ddb.Table('Scrape_Status')
-        for course in courses:
-            ga.get_and_store_reviews(course, read_table, info_table, review_table)
+        ga.parallel_scrape_reviews(links, read_table, info_table, review_table)
+        # for course in courses:
+        #     ga.get_and_store_reviews(course, read_table, info_table, review_table)
     else:
         courses = ga.get_courses()
         with open('course_links.pkl', 'w') as f:
