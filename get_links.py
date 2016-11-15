@@ -33,7 +33,7 @@ class GolfAdvisor(object):
         # self.session.proxies = {'http':  'socks5://127.0.0.1:9050',
         #                         'https': 'socks5://127.0.0.1:9050'}
         self.url = 'http://www.golfadvisor.com/course-directory/'
-        self.requests = 0
+        self.review_num = 0
 
     @staticmethod
     def renew_connection():
@@ -58,10 +58,11 @@ class GolfAdvisor(object):
             html: string. html of desired site.
         '''
         html = self.s1.get(url).text
-        self.requests += 1
-        if self.requests > 12:
-            self.renew_connection()
-            self.requests = 0
+        self.renew_connection()
+        # self.requests += 1
+        # if self.requests > 12:
+        #     self.renew_connection()
+            # self.requests = 0
         return html
 
     def get_courses(self):
@@ -104,15 +105,14 @@ class GolfAdvisor(object):
         OUTPUT:
             course_doc: json object of course info and nested reviews
         '''
-        # import pdb; pdb.set_trace()
         html = self.get_site(url)
         soup = BeautifulSoup(html, 'html.parser')
-        course_doc = self.get_course_info(soup)
-        course_doc['reviews'] = []
+        course_info = self.get_course_info(soup)
+        course_revs = []
         pages = self.check_pages(soup)
-        for i in xrange(pages + 1):
-            course_doc['reviews'] += self.get_reviews(url + '?page={}'.format(i))
-        return course_doc
+        for i in xrange(1, pages + 1):
+            course_revs += self.get_reviews(url + '?page={}'.format(i))
+        return course_info, course_revs
 
     def get_reviews(self, url):
         '''
@@ -125,6 +125,7 @@ class GolfAdvisor(object):
         html = self.get_site(url)
         soup = BeautifulSoup(html, 'html.parser')
         reviews = soup.find_all(itemprop='review')
+        reviews[:] = [str(review) for review in reviews]
         return reviews
 
     def get_course_info(self, soup):
@@ -139,7 +140,7 @@ class GolfAdvisor(object):
         course_doc = {}
         name = soup.find(itemprop='name').text
         course_doc['Name'] = name
-        atts = soup.find(class_='course-essential-info-top')
+        atts = str(soup.find(class_='course-essential-info-top'))
         course_doc['attributes'] = atts
         # TODO: Move this logic to the operations side when parsing docs
         '''# go through attributes and convert numbers to float or int
@@ -179,9 +180,9 @@ class GolfAdvisor(object):
         for key in key_info[2:]:
             name, val = key.get_attribute('innerHTML').strip().split(': ')
             course_doc[name] = val'''
-        info = soup.find(class_='row course-info-top-row')
+        info = str(soup.find(class_='row course-info-top-row'))
         course_doc['info'] = info
-        more = soup.find(id='more')
+        more = str(soup.find(id='more'))
         course_doc['more'] = more
         return course_doc
 
@@ -227,9 +228,20 @@ class GolfAdvisor(object):
         OUTPUT;
             None
         '''
-        table.put_item(Item=record)
 
-    def get_and_store_reviews(self, urls, read_table, write_table):
+        table.put_item(Item=record)
+        # if table.name == 'Course_Info':
+        #     table.update_item(Key={'Name': record['Name']},
+        #                       UpdateExpression='SET #r = :val1',
+        #                       ExpressionAttributeValues={':val1': record['Review']},
+        #                       ExpressionAttributeNames={'#r': 'Review'}))
+        # else:
+        #     table.update_item(Key={'Name': record['Name']},
+        #                       UpdateExpression='SET #r = :val1',
+        #                       ExpressionAttributeValues={':val1': record['Review']},
+        #                       ExpressionAttributeNames={'#r': 'Review'}))
+
+    def get_and_store_reviews(self, url, read_table, info_table, review_table):
         '''
         Complete pipeline for getting reviews from a list of pages, creating a
         course record in the form of a dictionary (primary key='Name'), and
@@ -240,18 +252,30 @@ class GolfAdvisor(object):
         OUTPUT:
             None
         '''
-        courses = read_table.scan(FilterExpression=Attr('Status').eq('not checked'))['Items']
-        course = courses[np.random.randint(len(courses))]
-        name = course['Course']
+        # courses = read_table.scan(FilterExpression=Attr('Status').eq('not checked'))['Items']
+        # course = courses[np.random.randint(len(courses))]
+        name = url
         url = urljoin(self.url, name)
         read_table.update_item(Key={'Course': name},
-                               UpdateExpression='SET Status = :val1',
-                               ExpressionAttributeValues={':val1': 'checking'})
-        course_doc = self.get_all_reviews(url)
-        self.write_to_dynamodb(course_doc, write_table)
+                               UpdateExpression='SET #r = :val1, #s = :val2',
+                               ExpressionAttributeValues={':val1': 'in process',
+                                                          ':val2': 'checking'},
+                               ExpressionAttributeNames={'#r': 'Result',
+                                                         '#s': 'Status'})
+        info, reviews = self.get_all_reviews(url)
+        self.write_to_dynamodb(info, info_table)
+        for review in reviews:
+            review = {'Review_Id': self.review_num,
+                      'Name': name,
+                      'Review': review}
+            self.write_to_dynamodb(review, review_table)
+            self.review_num += 1
         read_table.update_item(Key={'Course': name},
-                               UpdateExpression='SET Status = :val1',
-                               ExpressionAttributeValues={':val1': 'checked'})
+                               UpdateExpression='SET #r = :val1, #s = :val2',
+                               ExpressionAttributeValues={':val1': 'returned',
+                                                          ':val2': 'checked'},
+                               ExpressionAttributeNames={'#r': 'Result',
+                                                         '#s': 'Status'})
 
 
     def parallel_scrape_reviews(self, links, read_table, write_table):
@@ -280,15 +304,18 @@ def chunks(l, n):
 
 if __name__ == '__main__':
     ga = GolfAdvisor()
-    if os.exists('course_links.pkl'):
+    if os.path.exists('course_links.pkl'):
         with open('course_links.pkl', 'r') as f:
             courses = pickle.load(f)
-        n = int(math.ceil(len(courses) / 6.))
-        links = list(chunks(list(courses), n))
+        # n = int(math.ceil(len(courses) / 6.))
+        # links = list(chunks(list(courses), n))
+        courses = list(courses)
         ddb = boto3.resource('dynamodb', region_name='us-west-2')
-        write_table = ddb.Table('Course_Reviews')
+        info_table = ddb.Table('Course_Info')
+        review_table = ddb.Table('Course_Reviews')
         read_table = ddb.Table('Scrape_Status')
-        ga.parallel_scrape_reviews(links, read_table, write_table)
+        for course in courses:
+            ga.get_and_store_reviews(course, read_table, info_table, review_table)
     else:
         courses = ga.get_courses()
         with open('course_links.pkl', 'w') as f:
