@@ -42,6 +42,7 @@ class GolfAdvisor(object):
         self.requests = 0
         self.courses = courses
         self.users = set()
+        self.missing_courses = []
 
     @staticmethod
     def renew_connection():
@@ -120,6 +121,8 @@ class GolfAdvisor(object):
         html = self.get_site(url, session_num=session_num)
         soup = BeautifulSoup(html, 'html.parser')
         course_info = self.get_course_info(soup, url)
+        if course_info == None:
+            return None, None
         course_revs = {}
         pages = self.check_pages(soup)
         for i in xrange(1, pages + 1):
@@ -156,8 +159,9 @@ class GolfAdvisor(object):
         course_doc = {}
         try:
             name = soup.find(itemprop='name').text
-        except AttributeError:
-            print url
+        except:
+            self.missing_courses.append(url.split('.com')[-1])
+            return None
         course_doc['Course'] = url
         course_doc['Course_Id'] = self.courses.index(url.split('.com')[-1])
         course_doc['Name'] = name
@@ -275,6 +279,8 @@ class GolfAdvisor(object):
             #                        ExpressionAttributeNames={'#r': 'Result',
             #                                                  '#s': 'Status'})
             info, reviews = self.get_all_reviews(url, session_num=i)
+            if info == None:
+                continue
             self.write_to_dynamodb(info, info_table)
             for review in reviews:
                 self.users.add(review)
@@ -350,6 +356,46 @@ class GolfAdvisor(object):
                 missing_course_ids.append(i)
         return missing_course_ids
 
+    def check_missing_exists(self, courses, session_num=0):
+        for course in courses:
+            url = urljoin(self.url, course)
+            html = self.get_site(url, session_num=session_num)
+            soup = BeautifulSoup(html, 'html.parser')
+            try:
+                exists = soup.find(class_='container simple-page-wrapper').h1.text
+            except:
+                continue
+            if exists == 'Page not found':
+                new_course = self.fill_result_from_google(url)
+                self.missing_courses[self.missing_courses.index(course)] = new_course
+                self.courses[self.courses.index(course)] = new_course
+
+    def parallel_missing(self, n):
+        links = list(self.chunks(self.missing_courses, n))
+        jobs = []
+        for i in range(len(self.sessions)):
+            thread = threading.Thread(name=i,
+                                      target=self.check_missing_exists,
+                                      args=(links[i], i))
+            jobs.append(thread)
+            thread.start()
+        for j in jobs:
+            j.join()
+
+    def fill_result_from_google(self, url, course, session_num=0):
+        search_term = '%20'.join(url.split('courses/')[1].split('-')[1:])
+        html = self.get_site('https://www.google.com/search?q='+search_term, session_num=session_num)
+        soup = BeautifulSoup(html, 'html.parser')
+        paths = soup.find_all(class_='s')
+        for path in paths:
+            link = path.cite.text
+            if link.startswith('www.golfadvisor.com'):
+                if link.split('.com')[-1] == course:
+                    continue
+                return course
+
+
+
 
 
 
@@ -384,3 +430,9 @@ if __name__ == '__main__':
         n = int(math.ceil(len(courses) / 20.))
         links = list(ga.chunks(links, n))
         ga.parallel_scrape_reviews(links, info_table, review_table)
+        ga.parallel_missing(n)
+        missing_links = ga.missing_courses
+        missing_links = list(ga.chunks(missing_links, n))
+        ga.parallel_scrape_reviews(missing_links, info_table, review_table)
+        with open('missing_courses.pkl', 'r') as f:
+            pickle.dump(ga.missing_courses, f)
