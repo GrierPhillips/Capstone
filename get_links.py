@@ -10,22 +10,26 @@ from boto3.dynamodb.conditions import Key, Attr
 import os
 import threading
 import numpy as np
+from scipy import sparse
 
+def apply_defaults(cls):
+    for i in xrange(20):
+        setattr(cls, 's' + str(i), requesocks.session())
+    return cls
+
+@apply_defaults
 class GolfAdvisor(object):
     '''
     Class containing methods for scraping information from the GolfAdvisor
     website.
     '''
-    def __init__(self):
+    def __init__(self, courses=None):
         # TODO: implement threading with tor for scraping in parallel perhaps using method found at http://stackoverflow.com/questions/14321214/how-to-run-multiple-tor-processes-at-once-with-different-exit-ips
-        proxies = [9050, 9052, 9053, 9054, 9055, 9056]
-        self.s1 = requesocks.session()
-        self.s2 = requesocks.session()
-        self.s3 = requesocks.session()
-        self.s4 = requesocks.session()
-        self.s5 = requesocks.session()
-        self.s6 = requesocks.session()
-        self.sessions = [self.s1, self.s2, self.s3, self.s4, self.s5, self.s6]
+        proxies = [9050] + range(9052,9071)
+        self.sessions = [self.s0, self.s1, self.s2, self.s3, self.s4, self.s5,
+                         self.s6, self.s7, self.s8, self.s9, self.s10, self.s11,
+                         self.s12, self.s13, self.s14, self.s15, self.s16,
+                         self.s17, self.s18, self.s19]
         for i, s in enumerate(self.sessions):
             s.proxies = {'http':  'socks5://127.0.0.1:{}'.format(proxies[i]),
                          'https': 'socks5://127.0.0.1:{}'.format(proxies[i])}
@@ -35,6 +39,8 @@ class GolfAdvisor(object):
         self.url = 'http://www.golfadvisor.com/course-directory/'
         self.review_num = 0
         self.requests = 0
+        self.courses = courses
+        self.users = set()
 
     @staticmethod
     def renew_connection():
@@ -50,7 +56,7 @@ class GolfAdvisor(object):
             controller.authenticate(password="password")
             controller.signal(Signal.NEWNYM)
 
-    def get_site(self, url):
+    def get_site(self, url, session_num=0):
         '''
         Condensed process for getting site html and changing ip address.
         INPUT:
@@ -58,7 +64,8 @@ class GolfAdvisor(object):
         OUTPUT:
             html: string. html of desired site.
         '''
-        html = self.s1.get(url).text
+        html = self.sessions[session_num].get(url).text
+        self.requests += 1
         if self.requests > 20:
             self.requests = 0
             self.renew_connection()
@@ -79,6 +86,7 @@ class GolfAdvisor(object):
         soup = BeautifulSoup(html, 'html.parser')
         countries = soup.find_all('li', class_='col-sm-6')
         courses = self.walk_directory(countries, courses, self.url)
+        self.courses = courses
         return courses
 
     def walk_directory(self, elements, courses, url):
@@ -95,7 +103,7 @@ class GolfAdvisor(object):
                 self.walk_directory(sub_elements, courses, site)
         return courses
 
-    def get_all_reviews(self, url):
+    def get_all_reviews(self, url, session_num=0):
         '''
         Function to build the course document. Finds the total number of reivew
         pages and gets reviews from each.
@@ -104,16 +112,16 @@ class GolfAdvisor(object):
         OUTPUT:
             course_doc: json object of course info and nested reviews
         '''
-        html = self.get_site(url)
+        html = self.get_site(url, session_num=session_num)
         soup = BeautifulSoup(html, 'html.parser')
-        course_info = self.get_course_info(soup)
-        course_revs = []
+        course_info = self.get_course_info(soup, url)
+        course_revs = {}
         pages = self.check_pages(soup)
         for i in xrange(1, pages + 1):
-            course_revs += self.get_reviews(url + '?page={}'.format(i))
+            course_revs.update(self.get_reviews(url + '?page={}'.format(i)))
         return course_info, course_revs
 
-    def get_reviews(self, url):
+    def get_reviews(self, url, session_num=0):
         '''
         Retrieve all reviews on a single page.
         INPUT:
@@ -121,13 +129,17 @@ class GolfAdvisor(object):
         OUTPUT:
             reviews: list of review elements from page. Full html.
         '''
-        html = self.get_site(url)
+        html = self.get_site(url, session_num=session_num)
         soup = BeautifulSoup(html, 'html.parser')
         reviews = soup.find_all(itemprop='review')
+        users = []
+        for review in reviews:
+            users.append(review.find(itemprop='author').text)
         reviews[:] = [str(review) for review in reviews]
+        reviews = {users[i]: review for i, review in enumerate(reviews)}
         return reviews
 
-    def get_course_info(self, soup):
+    def get_course_info(self, soup, url):
         '''
         Create an entry for a golf course, including course stats and info.
         Brings in entire html of desired sections for parsing later.
@@ -138,7 +150,9 @@ class GolfAdvisor(object):
         '''
         course_doc = {}
         name = soup.find(itemprop='name').text
-        course_doc['Course'] = name
+        course_doc['Course'] = url
+        course_doc['Course_Id'] = self.courses.index(url.split('.com')[-1])
+        course_doc['Name'] = name
         atts = str(soup.find(class_='course-essential-info-top'))
         course_doc['attributes'] = atts
         # TODO: Move this logic to the operations side when parsing docs
@@ -230,7 +244,7 @@ class GolfAdvisor(object):
 
         table.put_item(Item=record)
 
-    def get_and_store_reviews(self, urls, read_table, info_table, review_table):
+    def get_and_store_reviews(self, urls, info_table, review_table, i):
         '''
         Complete pipeline for getting reviews from a list of pages, creating a
         course record in the form of a dictionary (primary key='Course'), and
@@ -246,29 +260,32 @@ class GolfAdvisor(object):
         # name = course['Course']
         for url in urls:
             url = urljoin(self.url, url)
-            read_table.update_item(Key={'Course': url},
-                                   UpdateExpression='SET #r = :val1, #s = :val2',
-                                   ExpressionAttributeValues={':val1': 'in process',
-                                                              ':val2': 'checking'},
-                                   ExpressionAttributeNames={'#r': 'Result',
-                                                             '#s': 'Status'})
-            info, reviews = self.get_all_reviews(url)
+            # read_table.update_item(Key={'Course': url},
+            #                        UpdateExpression='SET #r = :val1, #s = :val2',
+            #                        ExpressionAttributeValues={':val1': 'in process',
+            #                                                   ':val2': 'checking'},
+            #                        ExpressionAttributeNames={'#r': 'Result',
+            #                                                  '#s': 'Status'})
+            info, reviews = self.get_all_reviews(url, session_num=i)
             self.write_to_dynamodb(info, info_table)
             for review in reviews:
-                review = {'Review_Id': self.review_num,
+                self.users.add(review)
+                review = {'Username': review,
+                          'Course_Id': self.courses.index(url.split('.com')[-1]),
                           'Course': url,
-                          'Review': review}
+                          'Review': reviews[review]}
                 self.write_to_dynamodb(review, review_table)
-                self.review_num += 1
-            read_table.update_item(Key={'Course': url},
-                                   UpdateExpression='SET #r = :val1, #s = :val2',
-                                   ExpressionAttributeValues={':val1': 'returned',
-                                                              ':val2': 'checked'},
-                                   ExpressionAttributeNames={'#r': 'Result',
-                                                             '#s': 'Status'})
+            print url.split('.com')[-1], "loaded into Dynamo"
+
+            # read_table.update_item(Key={'Course': url},
+            #                        UpdateExpression='SET #r = :val1, #s = :val2',
+            #                        ExpressionAttributeValues={':val1': 'returned',
+            #                                                   ':val2': 'checked'},
+            #                        ExpressionAttributeNames={'#r': 'Result',
+            #                                                  '#s': 'Status'})
 
 
-    def parallel_scrape_reviews(self, links, read_table, info_table, review_table):
+    def parallel_scrape_reviews(self, links, info_table, review_table):
         '''
         Setup and implement threads for parallel scraping of course reviews and
         writing results to dynamodb.
@@ -281,33 +298,66 @@ class GolfAdvisor(object):
         for i in range(len(self.sessions)):
             thread = threading.Thread(name=i,
                                       target=self.get_and_store_reviews,
-                                      args=(links[i], read_table, info_table, review_table))
+                                      args=(links[i], info_table, review_table, i))
             jobs.append(thread)
             thread.start()
         for j in jobs:
             j.join()
 
-def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(l), n):
-        yield l[i:i + n]
+    @staticmethod
+    def chunks(l, n):
+        """Yield successive n-sized chunks from l."""
+        for i in range(0, len(l), n):
+            yield l[i:i + n]
+
+    def write_users_table(self, users_table):
+        with users_table.batch_writer() as batch:
+            for i, user in enumerate(list(self.users)):
+                batch.put_item(Item={'User_Id': i, 'Username': user})
+
+    def get_overall_data(self, reviews_table):
+        highest_user_id = len(self.users) - 1
+        highest_course_id = len(self.courses) - 1
+        ratings_mat = sparse.lil_matrix((highest_user_id, highest_course_id))
+        # total_records = review_table.item_count
+        for i in xrange(len(self.courses)):
+            response = review_table.query(KeyConditionExpression=Key('Course_Id').eq(i))
+            ratings = []
+            users = []
+            for item in response['Items']:
+                soup = BeautifulSoup(item['Review'], 'html.parser')
+                ratings.append(float(soup.find(class_='review-stars').img['alt'][:3]))
+                users.append(self.users.index(item['Username']))
+            for user, rating in zip(users, ratings):
+                ratings_mat[user, i] = rating
+        return ratings_mat
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
-    ga = GolfAdvisor()
     if os.path.exists('course_links.pkl'):
         with open('course_links.pkl', 'r') as f:
             courses = pickle.load(f)
-        n = int(math.ceil(len(courses) / 6.))
-        links = list(chunks(list(courses), n))
-        courses = list(courses)
+        ga = GolfAdvisor(list(courses))
+        n = int(math.ceil(len(courses) / 20.))
+        links = list(ga.chunks(ga.courses, n))
         ddb = boto3.resource('dynamodb', region_name='us-west-2')
-        info_table = ddb.Table('Course_Info')
-        review_table = ddb.Table('Course_Review')
+        # info_table = ddb.Table('Course_Info')
+        # review_table = ddb.Table('Course_Review')
+        info_table = ddb.Table('Courses_Info')
+        review_table = ddb.Table('Course_Reviews')
         read_table = ddb.Table('Scrape_Status')
-        ga.parallel_scrape_reviews(links, read_table, info_table, review_table)
+        ga.parallel_scrape_reviews(links, info_table, review_table)
         # for course in courses:
         #     ga.get_and_store_reviews(course, read_table, info_table, review_table)
     else:
+        ga = GolfAdvisor()
         courses = ga.get_courses()
         with open('course_links.pkl', 'w') as f:
             pickle.dump(courses, f)
