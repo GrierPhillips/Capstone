@@ -11,6 +11,7 @@ import os
 import threading
 import numpy as np
 from scipy import sparse
+import sys
 
 def apply_defaults(cls):
     for i in xrange(20):
@@ -64,7 +65,11 @@ class GolfAdvisor(object):
         OUTPUT:
             html: string. html of desired site.
         '''
-        html = self.sessions[session_num].get(url).text
+        try:
+            html = self.sessions[session_num].get(url).text
+        except:
+            self.renew_connection()
+            html = self.sessions[session_num].get(url).text
         self.requests += 1
         if self.requests > 20:
             self.requests = 0
@@ -149,7 +154,10 @@ class GolfAdvisor(object):
             course_doc: a dictionary containing the course stats and info
         '''
         course_doc = {}
-        name = soup.find(itemprop='name').text
+        try:
+            name = soup.find(itemprop='name').text
+        except AttributeError:
+            print url
         course_doc['Course'] = url
         course_doc['Course_Id'] = self.courses.index(url.split('.com')[-1])
         course_doc['Name'] = name
@@ -332,6 +340,15 @@ class GolfAdvisor(object):
                 ratings_mat[user, i] = rating
         return ratings_mat
 
+    def check_missing(self, info_table):
+        missing_course_ids = []
+        for i in xrange(len(self.courses)):
+            response = info_table.query(
+                KeyConditionExpression=Key('Course_Id').eq(i)
+            )
+            if response['Count'] == 0:
+                missing_course_ids.append(i)
+        return missing_course_ids
 
 
 
@@ -341,23 +358,29 @@ class GolfAdvisor(object):
 
 
 if __name__ == '__main__':
-    if os.path.exists('course_links.pkl'):
+    ddb = boto3.resource('dynamodb', region_name='us-west-2')
+    info_table = ddb.Table('Courses_Info')
+    review_table = ddb.Table('Course_Reviews')
+    read_table = ddb.Table('Scrape_Status')
+    if len(sys.argv) == 1:
+        if not os.path.exists('course_links.pkl'):
+            ga = GolfAdvisor()
+            courses = ga.get_courses()
+            with open('course_links.pkl', 'w') as f:
+                pickle.dump(courses, f)
+        else:
+            with open('course_links.pkl', 'r') as f:
+                courses = pickle.load(f)
+            ga = GolfAdvisor(list(courses))
+            n = int(math.ceil(len(courses) / 20.))
+            links = list(ga.chunks(ga.courses, n))
+            ga.parallel_scrape_reviews(links, info_table, review_table)
+    else:
         with open('course_links.pkl', 'r') as f:
             courses = pickle.load(f)
         ga = GolfAdvisor(list(courses))
+        missing_courses = ga.check_missing(info_table)
+        links = [ga.courses[x] for x in missing_courses]
         n = int(math.ceil(len(courses) / 20.))
-        links = list(ga.chunks(ga.courses, n))
-        ddb = boto3.resource('dynamodb', region_name='us-west-2')
-        # info_table = ddb.Table('Course_Info')
-        # review_table = ddb.Table('Course_Review')
-        info_table = ddb.Table('Courses_Info')
-        review_table = ddb.Table('Course_Reviews')
-        read_table = ddb.Table('Scrape_Status')
+        links = list(ga.chunks(links, n))
         ga.parallel_scrape_reviews(links, info_table, review_table)
-        # for course in courses:
-        #     ga.get_and_store_reviews(course, read_table, info_table, review_table)
-    else:
-        ga = GolfAdvisor()
-        courses = ga.get_courses()
-        with open('course_links.pkl', 'w') as f:
-            pickle.dump(courses, f)
