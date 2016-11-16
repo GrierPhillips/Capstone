@@ -12,6 +12,7 @@ import threading
 import numpy as np
 from scipy import sparse
 import sys
+from ItemItemRecommender import ItemItemRecommender
 
 def apply_defaults(cls):
     for i in xrange(20):
@@ -422,17 +423,23 @@ if __name__ == '__main__':
             links = list(ga.chunks(ga.courses, n))
             ga.parallel_scrape_reviews(links, info_table, review_table)
     else:
-        with open('course_links.pkl', 'r') as f:
-            courses = pickle.load(f)
-        ga = GolfAdvisor(list(courses))
-        missing_courses = ga.check_missing(info_table)
-        links = [ga.courses[x] for x in missing_courses]
-        n = int(math.ceil(len(courses) / 20.))
-        links = list(ga.chunks(links, n))
-        ga.parallel_scrape_reviews(links, info_table, review_table)
-        ga.parallel_missing(n)
-        missing_links = ga.missing_courses
-        missing_links = list(ga.chunks(missing_links, n))
-        ga.parallel_scrape_reviews(missing_links, info_table, review_table)
-        with open('missing_courses.pkl', 'r') as f:
-            pickle.dump(ga.missing_courses, f)
+        if sys.argv[1] == 'missing':
+            with open('course_links.pkl', 'r') as f:
+                courses = pickle.load(f)
+            ga = GolfAdvisor(list(courses))
+            missing_courses = ga.check_missing(info_table)
+            links = [ga.courses[x] for x in missing_courses]
+            n = int(math.ceil(len(courses) / 20.))
+            links = list(ga.chunks(links, n))
+            ga.parallel_scrape_reviews(links, info_table, review_table)
+            ga.parallel_missing(n)
+            missing_links = ga.missing_courses
+            missing_links = list(ga.chunks(missing_links, n))
+            ga.parallel_scrape_reviews(missing_links, info_table, review_table)
+            with open('missing_courses.pkl', 'w') as f:
+                pickle.dump(ga.missing_courses, f)
+        elif sys.argv[1] == 'model':
+            recommender = ItemItemRecommender(neighborhood_size=75)
+            recommender.fit(ga.get_overall_data(review_table))
+            with open('recommender.pkl', 'w') as f:
+                pickle.dump(recommender, f)
