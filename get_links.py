@@ -13,6 +13,8 @@ import numpy as np
 from scipy import sparse
 import sys
 from ItemItemRecommender import ItemItemRecommender
+import json
+
 
 def apply_defaults(cls):
     for i in xrange(20):
@@ -257,7 +259,7 @@ class GolfAdvisor(object):
 
         table.put_item(Item=record)
 
-    def get_and_store_reviews(self, urls, info_table, review_table, i):
+    def get_and_store_reviews(self, urls, info_table, review_table, session_num=0):
         '''
         Complete pipeline for getting reviews from a list of pages, creating a
         course record in the form of a dictionary (primary key='Course'), and
@@ -279,7 +281,7 @@ class GolfAdvisor(object):
             #                                                   ':val2': 'checking'},
             #                        ExpressionAttributeNames={'#r': 'Result',
             #                                                  '#s': 'Status'})
-            info, reviews = self.get_all_reviews(url, session_num=i)
+            info, reviews = self.get_all_reviews(url, session_num=session_num)
             if info == None:
                 continue
             self.write_to_dynamodb(info, info_table)
@@ -367,7 +369,7 @@ class GolfAdvisor(object):
             except:
                 continue
             if exists == 'Page not found':
-                new_course = self.fill_result_from_google(url)
+                new_course = self.fill_result_from_google(url, course, session_num=session_num)
                 self.missing_courses[self.missing_courses.index(course)] = new_course
                 self.courses[self.courses.index(course)] = new_course
 
@@ -384,16 +386,18 @@ class GolfAdvisor(object):
             j.join()
 
     def fill_result_from_google(self, url, course, session_num=0):
-        search_term = '%20'.join(url.split('courses/')[1].split('-')[1:])
-        html = self.get_site('https://www.google.com/search?q='+search_term, session_num=session_num)
-        soup = BeautifulSoup(html, 'html.parser')
-        paths = soup.find_all(class_='s')
-        for path in paths:
-            link = path.cite.text
-            if link.startswith('www.golfadvisor.com'):
-                if link.split('.com')[-1] == course:
-                    continue
-                return course
+        api_key = os.environ['GOOGLE_API_KEY']
+        cse_id = os.environ['GOOGLE_CSE_ID']
+        search_term = url.split('courses/')[1].split('-')[1:]
+        html = self.get_site('https://www.googleapis.com/customsearch/v1?key={}&cx={}&q={}'.format(api_key, cse_id, search_term), session_num=session_num)
+        results = json.loads(html)
+        for result in results['items']:
+            link = result['link']
+            if link.split('.com')[-1] == course:
+                continue
+            elif link.split('.com')[-1] in courses:
+                continue
+            return link.split('.com')[-1]
 
 
 
@@ -429,15 +433,24 @@ if __name__ == '__main__':
             ga = GolfAdvisor(list(courses))
             missing_courses = ga.check_missing(info_table)
             links = [ga.courses[x] for x in missing_courses]
-            n = int(math.ceil(len(courses) / 20.))
-            links = list(ga.chunks(links, n))
-            ga.parallel_scrape_reviews(links, info_table, review_table)
-            ga.parallel_missing(n)
-            missing_links = ga.missing_courses
-            missing_links = list(ga.chunks(missing_links, n))
-            ga.parallel_scrape_reviews(missing_links, info_table, review_table)
+            import pdb; pdb.set_trace()
+            if len(links) < 20:
+                ga.get_and_store_reviews(links, info_table, review_table)
+                ga.check_missing_exists(ga.missing_courses)
+                missing_links = ga.missing_courses
+                ga.get_and_store_reviews(missing_links, info_table, review_table)
+            else:
+                n = int(math.ceil(len(links) / 20.))
+                links = list(ga.chunks(links, n))
+                ga.parallel_scrape_reviews(links, info_table, review_table)
+                ga.parallel_missing(n)
+                missing_links = ga.missing_courses
+                missing_links = list(ga.chunks(missing_links, n))
+                ga.parallel_scrape_reviews(missing_links, info_table, review_table)
             with open('missing_courses.pkl', 'w') as f:
                 pickle.dump(ga.missing_courses, f)
+            with open('course_links.pkl', 'w') as f:
+                pickle.dump(ga.courses, f)
         elif sys.argv[1] == 'model':
             recommender = ItemItemRecommender(neighborhood_size=75)
             recommender.fit(ga.get_overall_data(review_table))
