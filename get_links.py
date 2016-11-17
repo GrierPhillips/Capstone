@@ -330,9 +330,9 @@ class GolfAdvisor(object):
         for i in range(0, len(l), n):
             yield l[i:i + n]
 
-    def create_users_table(self, users_table):
+    def create_users_table(self, reviews_table, users_table):
         for i in xrange(len(self.courses)):
-            response = info_table.query(
+            response = reviews_table.query(
                 KeyConditionExpression=Key('Course_Id').eq(i)
             )
             for item in response['Items']:
@@ -465,6 +465,7 @@ if __name__ == '__main__':
                 pickle.dump(ga.courses, f)
         elif sys.argv[1] == 'model':
             ga = GolfAdvisor(load_courses())
+            ga.create_users_table(users_table)
             recommender = ItemItemRecommender(neighborhood_size=75)
             recommender.fit(ga.get_overall_data(review_table))
             with open('recommender.pkl', 'w') as f:
