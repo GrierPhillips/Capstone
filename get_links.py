@@ -89,6 +89,9 @@ class GolfAdvisor(object):
         OUTPUT:
             courses: a set of all courses listed on the website
         '''
+        # TODO: For any future developments note that a list of all course links
+        # are available 1000 per page through www.golfadvisor.com/sitemap_courses-%PAGENUM%.xml
+        # the entire sitemap is available through http://www.golfadvisor.com/sitemap.xml
         # import pdb; pdb.set_trace()
         html = self.get_site(self.url)
         courses = set()
@@ -327,7 +330,14 @@ class GolfAdvisor(object):
         for i in range(0, len(l), n):
             yield l[i:i + n]
 
-    def write_users_table(self, users_table):
+    def create_users_table(self, users_table):
+        for i in xrange(len(self.courses)):
+            response = info_table.query(
+                KeyConditionExpression=Key('Course_Id').eq(i)
+            )
+            for item in response['Items']:
+                user = item['Username']
+                self.users.add(user)
         with users_table.batch_writer() as batch:
             for i, user in enumerate(list(self.users)):
                 batch.put_item(Item={'User_Id': i, 'Username': user})
@@ -338,7 +348,9 @@ class GolfAdvisor(object):
         ratings_mat = sparse.lil_matrix((highest_user_id, highest_course_id))
         # total_records = review_table.item_count
         for i in xrange(len(self.courses)):
-            response = review_table.query(KeyConditionExpression=Key('Course_Id').eq(i))
+            response = review_table.query(
+                KeyConditionExpression=Key('Course_Id').eq(i)
+            )
             ratings = []
             users = []
             for item in response['Items']:
@@ -388,7 +400,7 @@ class GolfAdvisor(object):
     def fill_result_from_google(self, url, course, session_num=0):
         api_key = os.environ['GOOGLE_API_KEY']
         cse_id = os.environ['GOOGLE_CSE_ID']
-        search_term = url.split('courses/')[1].split('-')[1:]
+        search_term = ' '.join(url.split('courses/')[1].split('-')[1:])
         html = self.get_site('https://www.googleapis.com/customsearch/v1?key={}&cx={}&q={}'.format(api_key, cse_id, search_term), session_num=session_num)
         results = json.loads(html)
         for result in results['items']:
@@ -409,10 +421,15 @@ class GolfAdvisor(object):
 
 
 if __name__ == '__main__':
+    def load_courses():
+        with open('course_links.pkl', 'r') as f:
+            return list(pickle.load(f))
+
     ddb = boto3.resource('dynamodb', region_name='us-west-2')
     info_table = ddb.Table('Courses_Info')
     review_table = ddb.Table('Course_Reviews')
     read_table = ddb.Table('Scrape_Status')
+    users_table = ddb.Table('Users')
     if len(sys.argv) == 1:
         if not os.path.exists('course_links.pkl'):
             ga = GolfAdvisor()
@@ -420,20 +437,15 @@ if __name__ == '__main__':
             with open('course_links.pkl', 'w') as f:
                 pickle.dump(courses, f)
         else:
-            with open('course_links.pkl', 'r') as f:
-                courses = pickle.load(f)
-            ga = GolfAdvisor(list(courses))
+            ga = GolfAdvisor(load_courses())
             n = int(math.ceil(len(courses) / 20.))
             links = list(ga.chunks(ga.courses, n))
             ga.parallel_scrape_reviews(links, info_table, review_table)
     else:
         if sys.argv[1] == 'missing':
-            with open('course_links.pkl', 'r') as f:
-                courses = pickle.load(f)
-            ga = GolfAdvisor(list(courses))
+            ga = GolfAdvisor(load_courses())
             missing_courses = ga.check_missing(info_table)
             links = [ga.courses[x] for x in missing_courses]
-            import pdb; pdb.set_trace()
             if len(links) < 20:
                 ga.get_and_store_reviews(links, info_table, review_table)
                 ga.check_missing_exists(ga.missing_courses)
@@ -452,6 +464,7 @@ if __name__ == '__main__':
             with open('course_links.pkl', 'w') as f:
                 pickle.dump(ga.courses, f)
         elif sys.argv[1] == 'model':
+            ga = GolfAdvisor(load_courses())
             recommender = ItemItemRecommender(neighborhood_size=75)
             recommender.fit(ga.get_overall_data(review_table))
             with open('recommender.pkl', 'w') as f:
