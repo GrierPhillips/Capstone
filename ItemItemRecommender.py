@@ -52,12 +52,3 @@ class ItemItemRecommender(object):
         unrated_items_by_pred_rating = [item for item in item_index_sorted_by_pred_rating
                                         if item not in items_rated_by_this_user]
         return unrated_items_by_pred_rating[-n:]
-
-if __name__ == "__main__":
-    ratings_data_contents, ratings_mat = get_ratings_data()
-    my_rec_engine = ItemItemRecommender(neighborhood_size=75)
-    my_rec_engine.fit(ratings_mat)
-    user_1_preds = my_rec_engine.pred_one_user(user_id=1, report_run_time=True)
-    # Show predicted ratings for user #1 on first 100 items
-    print(user_1_preds[:100])
-    print(my_rec_engine.top_n_recs(2, 20))

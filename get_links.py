@@ -27,7 +27,7 @@ class GolfAdvisor(object):
     Class containing methods for scraping information from the GolfAdvisor
     website.
     '''
-    def __init__(self, courses=None):
+    def __init__(self, courses=None, users=[]):
         # TODO: implement threading with tor for scraping in parallel perhaps using method found at http://stackoverflow.com/questions/14321214/how-to-run-multiple-tor-processes-at-once-with-different-exit-ips
         proxies = [9050] + range(9052,9071)
         self.sessions = [self.s0, self.s1, self.s2, self.s3, self.s4, self.s5,
@@ -44,8 +44,9 @@ class GolfAdvisor(object):
         self.review_num = 0
         self.requests = 0
         self.courses = courses
-        self.users = set()
+        self.users = users
         self.missing_courses = []
+        self.ratings_mat = None
 
     @staticmethod
     def renew_connection():
@@ -243,7 +244,7 @@ class GolfAdvisor(object):
             pages: int number of pages containing reviews
         '''
         review_count = float(soup.find(itemprop='reviewCount').text.strip('\)')\
-                           .strip('\('))
+                                 .strip('\('))
         pages = 1
         if review_count > 20:
             pages = int(math.ceil(review_count / 20))
@@ -273,36 +274,21 @@ class GolfAdvisor(object):
         OUTPUT:
             None
         '''
-        # courses = read_table.scan(FilterExpression=Attr('Status').eq('not checked'))['Items']
-        # course = courses[np.random.randint(len(courses))]
-        # name = course['Course']
         for url in urls:
             url = urljoin(self.url, url)
-            # read_table.update_item(Key={'Course': url},
-            #                        UpdateExpression='SET #r = :val1, #s = :val2',
-            #                        ExpressionAttributeValues={':val1': 'in process',
-            #                                                   ':val2': 'checking'},
-            #                        ExpressionAttributeNames={'#r': 'Result',
-            #                                                  '#s': 'Status'})
             info, reviews = self.get_all_reviews(url, session_num=session_num)
             if info == None:
                 continue
             self.write_to_dynamodb(info, info_table)
             for review in reviews:
-                self.users.add(review)
+                self.users.append(review)
                 review = {'Username': review,
-                          'Course_Id': self.courses.index(url.split('.com')[-1]),
+                          'Course_Id': self.courses\
+                                           .index(url.split('.com')[-1]),
                           'Course': url,
                           'Review': reviews[review]}
                 self.write_to_dynamodb(review, review_table)
             print url.split('.com')[-1], "loaded into Dynamo"
-
-            # read_table.update_item(Key={'Course': url},
-            #                        UpdateExpression='SET #r = :val1, #s = :val2',
-            #                        ExpressionAttributeValues={':val1': 'returned',
-            #                                                   ':val2': 'checked'},
-            #                        ExpressionAttributeNames={'#r': 'Result',
-            #                                                  '#s': 'Status'})
 
 
     def parallel_scrape_reviews(self, links, info_table, review_table):
@@ -318,7 +304,11 @@ class GolfAdvisor(object):
         for i in range(len(self.sessions)):
             thread = threading.Thread(name=i,
                                       target=self.get_and_store_reviews,
-                                      args=(links[i], info_table, review_table, i))
+                                      args=(links[i],
+                                            info_table,
+                                            review_table,
+                                            i)
+                                      )
             jobs.append(thread)
             thread.start()
         for j in jobs:
@@ -331,35 +321,63 @@ class GolfAdvisor(object):
             yield l[i:i + n]
 
     def create_users_table(self, reviews_table, users_table):
+        users = set()
         for i in xrange(len(self.courses)):
             response = reviews_table.query(
                 KeyConditionExpression=Key('Course_Id').eq(i)
             )
             for item in response['Items']:
                 user = item['Username']
-                self.users.add(user)
+                users.add(user)
+        self.users = list(users)
         with users_table.batch_writer() as batch:
             for i, user in enumerate(list(self.users)):
                 batch.put_item(Item={'User_Id': i, 'Username': user})
 
-    def get_overall_data(self, reviews_table):
-        highest_user_id = len(self.users) - 1
-        highest_course_id = len(self.courses) - 1
-        ratings_mat = sparse.lil_matrix((highest_user_id, highest_course_id))
-        # total_records = review_table.item_count
-        for i in xrange(len(self.courses)):
-            response = review_table.query(
-                KeyConditionExpression=Key('Course_Id').eq(i)
+    def get_users(self, users_table):
+        for i in xrange(209994):
+            response = users_table.query(
+                KeyConditionExpression=Key('User_Id').eq(i)
             )
+            self.users.append(response['Items'][0]['Username'])
+        with open('users.pkl', 'w') as f:
+            pickle.dump(self.users, f)
+
+    def get_overall_data(self, review_table=None):
+        highest_user_id = len(self.users)
+        highest_course_id = len(self.courses)
+        self.ratings_mat = sparse.lil_matrix((highest_user_id, highest_course_id))
+        # total_records = review_table.item_count
+        self.parallel_query_reviews(self.build_mat, review_table=review_table)
+
+    def parallel_query_reviews(self, function, num_cores, *args):
+        num = int(math.ceil(len(self.courses) / float(num_cores)))
+        links = list(self.chunks(range(3, len(self.courses)), num))
+        jobs = []
+        for i in range(num_cores):
+            arg = (links[i], ) + tuple(args)
+            thread = threading.Thread(name=i,
+                                      target=function,
+                                      args=arg)
+            jobs.append(thread)
+            thread.start()
+        for j in jobs:
+            j.join()
+
+    def build_mat(self, indices, review_table):
+        for i in indices:
+            print 'Course index ', i, 'processed into ratings_mat'
+            response = review_table.query(KeyConditionExpression=Key('Course_Id').eq(i))
             ratings = []
             users = []
             for item in response['Items']:
                 soup = BeautifulSoup(item['Review'], 'html.parser')
-                ratings.append(float(soup.find(class_='review-stars').img['alt'][:3]))
+                ratings.append(
+                    float(soup.find(class_='review-stars').img['alt'][:3])
+                )
                 users.append(self.users.index(item['Username']))
             for user, rating in zip(users, ratings):
-                ratings_mat[user, i] = rating
-        return ratings_mat
+                self.ratings_mat[user, i] = rating
 
     def check_missing(self, info_table):
         missing_course_ids = []
@@ -411,18 +429,143 @@ class GolfAdvisor(object):
                 continue
             return link.split('.com')[-1]
 
-
-
-
-
-
-
-
-
+    def parse_reviews(self, indices, review_table, user_table):
+        for i in indices:
+            print 'Course index', i, 'html parsed.'
+            response = review_table.query(KeyConditionExpression=Key('Course_Id').eq(i))
+            for item in response['Items']:
+                soup = BeautifulSoup(item['Review'], 'html.parser')
+                try:
+                    review_id = int(soup.div.div['id'].split('-')[-1])
+                except:
+                    review_id = None
+                text = soup.span.text
+                text += ' '.join(soup.find(itemprop='reviewBody')\
+                    .text.strip().split('\n'))
+                # import pdb; pdb.set_trace()
+                user_id = self.users.index(item['Username'])
+                try:
+                    age = soup.find(class_='context-value Age').text
+                except:
+                    age = None
+                try:
+                    gen = soup.find(class_='context-value Gender').text
+                except:
+                    gen = None
+                try:
+                    skill = soup.find(class_='context-value SkillLevel').text
+                except:
+                    skill = None
+                try:
+                    plays = soup.find(class_='context-value PlayFrequency').text
+                except:
+                    plays = None
+                try:
+                    hdcp = soup.find(class_='context-value Handicap').text
+                except:
+                    hdcp = None
+                rating = soup.find(itemprop='ratingValue').text
+                try:
+                    played = soup.find(class_='review-play-date').text.split()[-1]
+                except: None
+                try:
+                    prev_played = soup.find(class_='label label-default context-value-standalone FirstTime').text
+                except:
+                    prev_played = None
+                try:
+                    walk = soup.find(class_='label label-default context-value-standalone WalkOrRide').text
+                except:
+                    walk = None
+                try:
+                    holes = soup.find(class_="label label-default context-value-standalone 9HoleGame").text
+                except:
+                    holes = None
+                try:
+                    weather = soup.find(class_="label label-default context-value-standalone Weather").text
+                except:
+                    weather = None
+                try:
+                    pace = soup.find(class_="sec-rating-value Pace").text.strip()
+                except:
+                    pace = None
+                try:
+                    layout = soup.find(class_="sec-rating-value CourseLayout").text.strip()
+                except:
+                    layout = None
+                try:
+                    conditions = soup.find(class_="sec-rating-value CourseConditions").text.strip()
+                except:
+                    conditions = None
+                try:
+                    staff = soup.find(class_="sec-rating-value StaffFriendliness").text.strip()
+                except:
+                    staff = None
+                try:
+                    value = soup.find(class_="sec-rating-value ValueForTheMoney").text.strip()
+                except:
+                    value = None
+                try:
+                    amenities = soup.find(class_="sec-rating-value OverallFacilitiesCondition").text.strip()
+                except:
+                    amenities = None
+                try:
+                    difficulty = soup.find(class_="context-value CourseDifficulty").text
+                except:
+                    difficulty = None
+                try:
+                    recommend = soup.find(class_="review-recommend-yes review-recommend col-xs-12").p.text
+                except:
+                    recommend = None
+                positive = int(soup.find(class_="btn btn-link submit-feedback-link submit-review-positive-feedback-link").span.text)
+                negative = int(soup.find(class_="btn btn-link submit-feedback-link submit-review-negative-feedback-link").span.text)
+                review_table.update_item(
+                    Key={
+                         'Course_Id': i,
+                         'Username': item['Username']
+                    },
+                    UpdateExpression="set Review_Id = :rid, Review = :rev, User_Id = :uid, Rating = :rat, Date_Played = :dp, Previously_Played = :pp, Walk_Or_Ride = :wor, Holes = :h, Weather = :w, Pace_of_Play = :pop, Course_Layout = :cl, Course_Conditions = :cc, Staff_Friendliness = :sf, Value_for_the_Money = :vfm, Amenieites = :am, Course_Difficulty = :cd, Recommendation = :rec, Positive_Feedback = :pos, Negative_Feedback = :neg",
+                    ExpressionAttributeValues={
+                        ':rid': review_id,
+                        ':rev': text,
+                        ':uid': user_id,
+                        ':rat': rating,
+                        ':dp': played,
+                        ':pp': prev_played,
+                        ':wor': walk,
+                        ':h': holes,
+                        ':w': weather,
+                        ':pop': pace,
+                        ':cl': layout,
+                        ':cc': conditions,
+                        ':sf': staff,
+                        ':vfm': value,
+                        ':am': amenities,
+                        ':cd': difficulty,
+                        ':rec': recommend,
+                        ':pos': positive,
+                        ':neg': negative}
+                )
+                user_table.update_item(
+                    Key={
+                         'User_Id': user_id
+                    },
+                    UpdateExpression="set Age = :a, Gender = :g, Skill = :s, Plays = :p, Handicap = :h",
+                    ExpressionAttributeValues={
+                        ':a': age,
+                        ':g': gen,
+                        ':s': skill,
+                        ':p': plays,
+                        ':h': hdcp
+                    }
+                )
 
 if __name__ == '__main__':
     def load_courses():
         with open('course_links.pkl', 'r') as f:
+            return list(pickle.load(f))
+
+    def load_users():
+        with open('users.pkl', 'r') as f:
             return list(pickle.load(f))
 
     ddb = boto3.resource('dynamodb', region_name='us-west-2')
@@ -450,7 +593,9 @@ if __name__ == '__main__':
                 ga.get_and_store_reviews(links, info_table, review_table)
                 ga.check_missing_exists(ga.missing_courses)
                 missing_links = ga.missing_courses
-                ga.get_and_store_reviews(missing_links, info_table, review_table)
+                ga.get_and_store_reviews(missing_links,
+                                         info_table,
+                                         review_table)
             else:
                 n = int(math.ceil(len(links) / 20.))
                 links = list(ga.chunks(links, n))
@@ -458,15 +603,22 @@ if __name__ == '__main__':
                 ga.parallel_missing(n)
                 missing_links = ga.missing_courses
                 missing_links = list(ga.chunks(missing_links, n))
-                ga.parallel_scrape_reviews(missing_links, info_table, review_table)
+                ga.parallel_scrape_reviews(missing_links,
+                                           info_table,
+                                           review_table)
             with open('missing_courses.pkl', 'w') as f:
                 pickle.dump(ga.missing_courses, f)
             with open('course_links.pkl', 'w') as f:
                 pickle.dump(ga.courses, f)
         elif sys.argv[1] == 'model':
-            ga = GolfAdvisor(load_courses())
-            ga.create_users_table(users_table)
+            ga = GolfAdvisor(load_courses(), load_users())
             recommender = ItemItemRecommender(neighborhood_size=75)
-            recommender.fit(ga.get_overall_data(review_table))
+            ga.get_overall_data(review_table)
+            with open('ratings_mat.pkl', 'w') as f:
+                pickle.dump(ga.ratings_mat, f)
+            recommender.fit(ga.ratings_mat)
             with open('recommender.pkl', 'w') as f:
                 pickle.dump(recommender, f)
+        elif sys.argv[1] == 'parse':
+            ga = GolfAdvisor(load_courses(), load_users())
+            ga.parallel_query_reviews(ga.parse_reviews, 16, review_table, users_table)
