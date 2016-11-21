@@ -1,0 +1,41 @@
+{% extends '/layouts/main.html' %}
+{% block title %}
+  Write a review
+{% endblock %}
+{% block header %}
+<header>
+  <div class="container">
+      <div class="row">
+          <div class="col-lg-12">
+              <div class="intro-text">
+                  <span class="name">Review a course you played</span>
+                  <hr>
+                  <span class="skills">Review as many courses as possible to get the best recommendations.</span>
+              </div>
+          </div>
+      </div>
+  </div>
+</header>
+{% endblock %}
+{% block content %}
+<section class="success" id="about">
+  <div class="container">
+  	<div class="row">
+  		<h2>Review</h2>
+  	</div>
+      <div class="row">
+          <div id="course"></div>
+          You gave a rating of <span id="count">0</span> star(s)
+  	  </div>
+
+      <div class="row lead">
+          <p>Also you can give a default rating by adding attribute data-rating</p>
+          <div id="stars-existing" class="starrr" data-rating='4'></div>
+          You gave a rating of <span id="count-existing">4</span> star(s)
+      </div>
+  </div>
+</section>
+{% endblock %}
+{% block script %}
+<script src='static/js/ratings.js'></script>
+{% endblock %}

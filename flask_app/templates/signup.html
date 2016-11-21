@@ -1,0 +1,64 @@
+{% extends '/layouts/main.html' %}
+{% block title %}
+  Register for GolfRecs
+{% endblock %}
+{% block header %}
+<header>
+  <div class="container">
+    <div class="row">
+    	<div class="col-md-6">
+            {% if error %}
+              <p><strong>Error:</strong> {{ error }}
+            {% endif %}
+            <form class="form-horizontal" action="/signup" method="POST" role=form>
+            {{ form.csrf_token }}
+            <fieldset>
+              <div id="legend">
+                <legend class="">Register</legend>
+              </div>
+              <div class="control-group">
+                <label class="control-label" for="username">Username</label>
+                <div class="controls">
+                  <input type="text" id="username" name="username" placeholder="Username" class="form-control input-lg">
+                  <p class="help-block">Username can contain any letters or numbers, without spaces</p>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label class="control-label" for="email">E-mail</label>
+                <div class="controls">
+                  <input type="email" id="email" name="email" placeholder="email@domain.com" class="form-control input-lg">
+                  <p class="help-block">Please provide your E-mail</p>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label class="control-label" for="password">Password</label>
+                <div class="controls">
+                  <input type="password" id="password" name="password" placeholder="Password" class="form-control input-lg">
+                  <p class="help-block">Password should be at least 6 characters</p>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label class="control-label" for="password_confirm">Password (Confirm)</label>
+                <div class="controls">
+                  <input type="password" id="password_confirm" name="password_confirm" placeholder="Password" class="form-control input-lg">
+                  <p class="help-block">Please confirm password</p>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <!-- Button -->
+                <div class="controls">
+                  <button class="btn btn-success" type='submit'>Register</button>
+                </div>
+              </div>
+            </fieldset>
+          </form>
+
+      </div>
+    </div>
+  </div>
+</header>
+{% endblock %}

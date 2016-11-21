@@ -1,0 +1,55 @@
+{% extends '/layouts/main.html' %}
+{% block title %}
+  Welcom back {{ session['username'] }}
+{% endblock %}
+{% block header %}
+<header>
+  <div class="container">
+      <div class="row">
+          <div class="col-lg-12">
+              <div class="intro-text">
+                  <span class="name">GolfRecs</span>
+                  <hr>
+                  <span class="skills">Taking a vacation? Looking for a new links to tackle with your foursome?
+                    <br>GolfRecs provides course recommendations based on your preferences and abilities.
+                    <br>Save time. Save money. Go GolfRecs.</span>
+              </div>
+          </div>
+      </div>
+  </div>
+</header>
+{% endblock %}
+{% block content %}
+<section class="success" id="about">
+  <div class="container">
+  	<div class="row">
+  		<h2>Reviews</h2>
+  	</div>
+      {% for item in reviews %}
+      <div class="row lead">
+          <h3>{{ item['Course'] }}</h3>
+          <h3>Review:</h3>
+          <p>{{ item['Review'] }}</p>
+          {% if item['Course_Conditions'] %}
+          <p>Course Conditions: {{item['Course_Conditions']}}</p>
+          {% endif %}
+          {% if item['Course_Difficulty'] %}
+          <p>Course Difficulty: {{item['Course_Difficulty']}}</p>
+          {% endif %}
+          {% if item['Course_Layout'] %}
+          <p>Course Layout: {{item['Course_Layout']}}</p>
+          {% endif %}
+          {% if item['Pace_of_Play'] %}
+          <p>Pace_of_Play: {{item['Pace_of_Play']}}</p>
+          {% endif %}
+          {% if item['Staff_Friendliness'] %}
+          <p>Pace_of_Play: {{item['Staff_Friendliness']}}</p>
+          {% endif %}
+          {% if item['Value_for_the_Money'] %}
+          <p>Pace_of_Play: {{item['Value_for_the_Money']}}</p>
+          {% endif %}
+  	  </div>
+      {% endfor %}
+  </div>
+</section>
+{% endblock %}
