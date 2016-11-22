@@ -605,7 +605,7 @@ if __name__ == '__main__':
 
     def load_ratings_mat():
         with open('ratings_mat.pkl', 'r') as f:
-            return list(pickle.load(f))
+            return pickle.load(f)
 
 
 
@@ -667,3 +667,8 @@ if __name__ == '__main__':
                 pickle.dump(ga.error_items, f)
             with open('users2.pkl', 'w') as f:
                 pickle.dump(ga.users, f)
+
+    # TODO: Implement test train split on ratings_mat using df.unstack().reset_index()
+    # load matrix into pandas and change the names of the indices to user and course.
+    # then call df.unstack().reset_index() to return user, course, rating matrix.
+    # Finally drop nan values with df.drop(df[pd.isnull(df['rating'])].index)

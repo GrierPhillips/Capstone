@@ -9,6 +9,9 @@ app.debug = True
 app.secret_key = 'L]4y\xcc&\x9aq&`\x80\xb4\xb8y\x86\xad+e\x1f\x9a\xef\x1d\x81\x07'
 login_manager = LoginManager()
 login_manager.init_app(app)
+dynamo = boto3.resource('dynamodb', region_name='us-west-2')
+user_table = dynamo.Table('GR_Users')
+review_table = dynamo.Table('GR_Reviews')
 
 class RegistrationForm(Form):
     username = StringField('Username', validators=[validators.Length(min=3, max=25)])
@@ -97,6 +100,18 @@ def do_login(name, password):
 @app.route('/account')
 def account():
     return render_template('account.html')
+
+def get_user(name):
+    user_query = user_table.get_item(Key={'Username': name})
+    user_item = user_query['Item']
+    reviews = {}
+    for course in user_item['Reviewed_Courses'][:10]:
+        reviews.add(review_table.get_item(Key={'Course': course, 'Username': name})['Item'])
+    rev_attrs = ['Course_Conditions', 'Course_Layout', 'Course_Difficulty', 'Pace_of_Play', 'Staff_Friendliness', 'Value_for_the_Money']
+    user_attrs = ['Age', 'Gender', 'Skill', 'Plays', 'Handicap']
+    rev_item = query['Item']
+    user_item = query['Item']
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', threaded=True)
