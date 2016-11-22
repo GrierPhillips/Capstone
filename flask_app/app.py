@@ -3,10 +3,11 @@ from wtforms import Form, BooleanField, StringField, PasswordField, validators
 import boto3
 from boto3.dynamodb.conditions import Key
 from flask_login import UserMixin, LoginManager
+import os
 
 app = Flask(__name__)
 app.debug = True
-app.secret_key = 'L]4y\xcc&\x9aq&`\x80\xb4\xb8y\x86\xad+e\x1f\x9a\xef\x1d\x81\x07'
+app.secret_key = os.environ['GOLFRECS_KEY']
 login_manager = LoginManager()
 login_manager.init_app(app)
 dynamo = boto3.resource('dynamodb', region_name='us-west-2')
