@@ -8,7 +8,7 @@
       <div class="row">
           <div class="col-lg-12">
               <div class="intro-text">
-                  <span class="name">Review a course you played</span>
+                  <span class="name">Review a course you've played</span>
                   <hr>
                   <span class="skills">Review as many courses as possible to get the best recommendations.</span>
               </div>
@@ -20,10 +20,40 @@
 {% block content %}
 <section class="success" id="about">
   <div class="container">
-  	<div class="row">
-  		<h2>Review</h2>
-  	</div>
       <div class="row">
+        <div class='col-md-12'>
+          <form class="form-horizontal" action="/signup" method="POST" role=form>
+            {{ form.csrf_token }}
+            <fieldset>
+              <div id="legend">
+                <legend class="">Write a Review</legend>
+              </div>
+              <div class="control-group">
+                <label class="control-label" for="course">Select a course</label>
+                <div class="controls">
+                  <select name='course'>
+                    <option disabled='True' selected='selected'>Select a Course</option>
+                    {% for course in courses %}
+                        <option value='{{ course }}'>{{course}}</option>
+                    {% endfor %}
+                  </select>
+
+                  <!--<input type="text" id="username" name="username" placeholder="Username" class="form-control input-lg">
+                  <p class="help-block">Username can contain any letters or numbers, without spaces</p> -->
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label class="control-label" for="review">Write a Review</label>
+                <div class="controls">
+                  <input type='textarea' id='review' name='review' placeholder='Write a review' class='form-control input-lg'>
+
+                  <!--<input type="text" id="username" name="username" placeholder="Username" class="form-control input-lg">
+                  <p class="help-block">Username can contain any letters or numbers, without spaces</p> -->
+                </div>
+              </div>
+
+
           <div id="course"></div>
           You gave a rating of <span id="count">0</span> star(s)
   	  </div>

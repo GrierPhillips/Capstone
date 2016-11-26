@@ -1,0 +1,104 @@
+{% extends '/layouts/main.html' %}
+{% block title %}
+  Update your profile
+{% endblock %}
+
+{% block content %}
+<section class='success' id='profile'>
+  <div class='container'>
+    <div class='row'>
+      <div class='col-md-6'>
+        {% if error %}
+          <p><strong>Error:</strong> {{ error }}
+        {% endif %}
+        <form class="form-horizontal" action="/update_profile" method="POST" role=form>
+        {{ form.csrf_token }}
+          <fieldset>
+            <div id="legend">
+              <legend class="">Update Profile</legend>
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="age">Age</label>
+              <div class="controls">
+                <input type="text" id="age" name="age" placeholder="Age" class="form-control input-md" style="width:50px;">
+              </div>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label" for="email">Gender</label>
+              <div class="controls">
+                <select name='gender'>
+                  <option disabled='True' selected='selected'>Select</option>
+                  <option value='female'>Female</option>
+                  <option value='male'>Male</option>
+                  <option value='none'>Choose Not To Identify</option>
+                </select>
+                <!--<input type="email" id="email" name="email" placeholder="email@domain.com" class="form-control input-lg"> -->
+                <!-- <p class="help-block">Please provide your E-mail</p> -->
+              </div>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label" for="skill">Skill</label>
+              <div class="controls">
+                <select name='skill'>
+                  <option disabled='True' selected='selected'>Select</option>
+                  <option value='beginner'>Beginner</option>
+                  <option value='intermediate'>Intermediate</option>
+                  <option value='advanced'>Advancec</option>
+                </select>
+              <!--  <input type="text" id="skill" name="skill" placeholder="Password" class="form-control input-lg"> -->
+              <!--  <p class="help-block">Password should be at least 6 characters</p> -->
+              </div>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label" for="handicap">Handicap</label>
+              <div class="controls">
+                <select name='handicap'>
+                  <option disabled='True' selected='selected'>Select</option>
+                  <option value="0-4">0-4</option>
+                  <option value="5-9">5-9</option>
+                  <option value="10-14">10-14</option>
+                  <option value="15-20">15-20</option>
+                  <option value="20-24">20-24</option>
+                  <option value="25+">25+</option>
+                  <option value="dont-know">Don't know</option>
+                </select>
+              <!--  <input type="password" id="password_confirm" name="password_confirm" placeholder="Password" class="form-control input-lg"> -->
+              <!--  <p class="help-block">Please confirm password</p> -->
+              </div>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label" for="plays">How often do you play?</label>
+              <div class="controls">
+                <select name='plays'>
+                  <option disabled='True' selected='selected'>Select</option>
+                  <option value="once">Once a year</option>
+                  <option value="twice">Twice a year</option>
+                  <option value="four">Once every three months</option>
+                  <option value="twelve">Once a month</option>
+                  <option value="fifty-two">Once a week</option>
+                  <option value="fifty-two-plus">A few times a week</option>
+                </select>
+              <!--  <input type="password" id="password_confirm" name="password_confirm" placeholder="Password" class="form-control input-lg"> -->
+              <!--  <p class="help-block">Please confirm password</p> -->
+              </div>
+            </div>
+
+            <br>
+            <div class="control-group">
+              <!-- Button -->
+              <div class="controls">
+                <button class="btn btn-success" type='submit'>Update</button>
+              </div>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

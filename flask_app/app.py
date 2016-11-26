@@ -1,9 +1,10 @@
 from flask import Flask, render_template, request, flash, redirect, url_for, session
-from wtforms import Form, BooleanField, StringField, PasswordField, validators
+from wtforms import Form, StringField, validators, IntegerField, SelectField, TextAreaField
 import boto3
 from boto3.dynamodb.conditions import Key
 from flask_login import UserMixin, LoginManager
 import os
+import cPickle as pickle
 
 app = Flask(__name__)
 app.debug = True
@@ -13,6 +14,10 @@ login_manager.init_app(app)
 dynamo = boto3.resource('dynamodb', region_name='us-west-2')
 user_table = dynamo.Table('GR_Users')
 review_table = dynamo.Table('GR_Reviews')
+course_table = dynamo.Table('Courses')
+with open('../courses.pkl', 'r') as f:
+    courses = pickle.load(f)
+course_choices = [(courses.index(course), course) for course in sorted(courses)]
 
 class RegistrationForm(Form):
     username = StringField('Username', validators=[validators.Length(min=3, max=25)])
@@ -26,6 +31,17 @@ class RegistrationForm(Form):
 class LoginForm(Form):
     username = StringField('Username', validators=[validators.Length(min=3, max=25)])
     password = StringField('Password', validators=[validators.DataRequired()])
+
+class UpdateProfileForm(Form):
+    age = IntegerField('Age')
+    gender = SelectField('Gender', choices=[('female', 'Female'), ('male', 'Male'), ('none', 'Choose Not To Identify')])
+    skill = SelectField('Skill', choices=[('beginner', 'Beginner'), ('intermediate', 'Intermediate'), ('advanced', 'Adavanced')])
+    handicap = SelectField('Handicap', choices=[('0-4', '0-4'), ('5-9','5-9'),('10-14','10-14'),('15-19','15-19'),('20-24','20-24'),('25+','25+'),('dont-know', "Don't know")])
+    plays = SelectField('Plays', choices=[('once', 'Once a year'),('twice', 'Twice a year'),('four', 'Once every three months'),('twelve', 'Once a month'),('fity-two', 'Once a week'),('fifty-two-plus', 'A few times a week')])
+
+class ReviewForm(Form):
+    course = SelectField('Course', choices=course_choices)
+    review = TextAreaField('Review')
 
 @app.route('/', methods=['GET'])
 def index():
@@ -56,9 +72,12 @@ def signup():
 
 def do_signup(name, email, password):
     user = {'Username': name, 'Email': email, 'Password': password}
-
-    dynamo = boto3.resource('dynamodb', region_name='us-west-2')
-    user_table = dynamo.Table('GR_Users')
+    with open('../users.pkl', 'r') as f:
+        users = pickle.load(f)
+    users.append(name)
+    user['User_Id'] = users.index(name)
+    with open('../users.pkl', 'w') as f:
+        pickle.dump(users, f)
     query = user_table.query(KeyConditionExpression=Key('Username').eq(name))
     if query['Count'] == 0:
         user_table.put_item(Item=user)
@@ -86,8 +105,6 @@ def login():
     return render_template('login.html', form=form, error=error)
 
 def do_login(name, password):
-    dynamo = boto3.resource('dynamodb', region_name='us-west-2')
-    user_table = dynamo.Table('GR_Users')
     query = user_table.query(KeyConditionExpression=Key('Username').eq(name))
     if query['Count'] == 0:
         error = 'Username {} does not exist'.format(name)
@@ -100,18 +117,68 @@ def do_login(name, password):
 
 @app.route('/account')
 def account():
-    return render_template('account.html')
+    rev_attrs = ['Course_Conditions', 'Course_Layout', 'Course_Difficulty', 'Pace_of_Play', 'Staff_Friendliness', 'Value_for_the_Money']
+    user_attrs = ['Age', 'Gender', 'Skill', 'Plays', 'Handicap']
+    user_item, reviews = get_user(session['username'].lower())
+    atts = True if len(user_item.keys()) > 4 else False
+    return render_template('account.html',
+                           atts=atts,
+                           user_attrs=user_attrs,
+                           user_item=user_item,
+                           reviews=reviews
+                           )
 
 def get_user(name):
     user_query = user_table.get_item(Key={'Username': name})
     user_item = user_query['Item']
-    reviews = {}
-    for course in user_item['Reviewed_Courses'][:10]:
-        reviews.add(review_table.get_item(Key={'Course': course, 'Username': name})['Item'])
-    rev_attrs = ['Course_Conditions', 'Course_Layout', 'Course_Difficulty', 'Pace_of_Play', 'Staff_Friendliness', 'Value_for_the_Money']
-    user_attrs = ['Age', 'Gender', 'Skill', 'Plays', 'Handicap']
-    rev_item = query['Item']
-    user_item = query['Item']
+    reviews = None
+    if 'Reviewed_Courses' not in user_item.keys():
+        return user_item, reviews
+    else:
+        for course in user_item['Reviewed_Courses'][:-11:-1]:
+            reviews.append(review_table.get_item(Key={'Course': course, 'Username': name})['Item'])
+            reviews[-1]['Course_Name'] = course_table.get_item()
+    return user_item, reviews
+
+@app.route('/update_profile', methods=['GET', 'POST'])
+def update_profile():
+    form = UpdateProfileForm(request.form)
+    print request.form.keys()
+    if request.args:
+        error = request.args.get('error')
+    else:
+        error = None
+    message = None
+    age = request.form.get('age')
+    gender = request.form.get('gender')
+    skill = request.form.get('skill')
+    handicap = request.form.get('handicap')
+    plays = request.form.get('plays')
+    atts = {'Age': age, 'Gender': gender, 'Skill': skill, 'Handicap': handicap, 'Plays': plays}
+    print atts
+    if request.method == 'POST':
+        message = 'Thanks for updating your profile!'
+        result, error = do_update(atts)
+        if result == False:
+            return redirect(url_for('update_profile', error=error))
+        else:
+            return redirect(url_for('account', message=message))
+    return render_template('update_profile.html', form=form)
+
+def do_update(atts):
+    print session['username'].lower()
+    name = session['username'].lower()
+    user_item = user_table.get_item(Key={'Username': name})['Item']
+    user_item.update(atts)
+    user_table.put_item(Item=user_item)
+    return True, None
+
+@app.route('/review', methods=['GET', 'POST'])
+def review():
+    form = ReviewForm(request.form)
+    form.course.choices = [(courses.index(course), course) for course in sorted(courses)]
+    print request.data
+    return render_template('review.html', form=form, courses=course_choices)
 
 
 if __name__ == '__main__':

@@ -15,6 +15,7 @@ import sys
 from ItemItemRecommender import ItemItemRecommender
 import json
 import multiprocessing
+from decimal import Decimal
 
 
 POOL_SIZE = multiprocessing.cpu_count()
@@ -30,7 +31,7 @@ class GolfAdvisor(object):
     Class containing methods for scraping information from the GolfAdvisor
     website.
     '''
-    def __init__(self, courses=None, users=[], ratings_mat=None, review_table=None):
+    def __init__(self, courses=None, users=[], ratings_mat=None, review_table=None, info_table=None, user_table=None, course_table=None):
         # TODO: implement threading with tor for scraping in parallel perhaps using method found at http://stackoverflow.com/questions/14321214/how-to-run-multiple-tor-processes-at-once-with-different-exit-ips
         proxies = [9050] + range(9052,9071)
         self.sessions = [self.s0, self.s1, self.s2, self.s3, self.s4, self.s5,
@@ -51,6 +52,9 @@ class GolfAdvisor(object):
         self.missing_courses = []
         self.ratings_mat = ratings_mat
         self.review_table = review_table
+        self.info_table = info_table
+        self.user_table = user_table
+        self.course_table = course_table
 
     @staticmethod
     def renew_connection():
@@ -353,8 +357,9 @@ class GolfAdvisor(object):
         self.missing_users = []
         self.ratings_mat = sparse.lil_matrix((highest_user_id, highest_course_id))
         # total_records = review_table.item_count
-        indices = range(len(self.courses))
-        self.multiprocess_build_mat(POOL_SIZE, indices)
+        self.parallel_query_reviews(self.build_mat, POOL_SIZE)
+        # indices = range(len(self.courses))
+        # self.multiprocess_build_mat(POOL_SIZE, indices)
         with open('missing_users.pkl', 'w') as f:
             pickle.dump(self.missing_users, f)
 
@@ -372,13 +377,155 @@ class GolfAdvisor(object):
         for j in jobs:
             j.join()
 
+    def parse_course_info(self, indices):
+        for i in indices:
+            try:
+                response = self.info_table.get_item(Key={'Course_Id': i})
+            except:
+
+            item = response['Item']
+            new_item = {}
+            new_item['Course'] = item['Course']
+            new_item['Course_Id'] = item['Course_Id']
+            new_item['Name'] = item['Name']
+            try:
+                soup = BeautifulSoup(item['attributes'], 'html.parser')
+            except:
+                self.missing_courses.append(i)
+            atts = {'Holes': None, 'Par': None, 'Length': None, 'Slope': None, 'Rating': None}
+            try:
+                for items in soup.find_all('li')[:5]:
+                    splits = items.text.split(': ')
+                    if splits[0].startswith('\n'):
+                        continue
+                    elif splits[0] == 'Length':
+                        if 'meters' in splits[-1]:
+                            atts[splits[0]] = int(round(int(splits[1].split()[0]) * 0.9144))
+                        else:
+                            atts[splits[0]] = int(splits[1].split()[0])
+                    elif splits[0] == 'Rating':
+                        atts[splits[0]] = Decimal(splits[1])
+                    else:
+                        atts[splits[0]] = int(splits[1])
+                try:
+                    atts['Lattitude'] = soup.find(class_='btn-layout')['data-course-lat']
+                    atts['Longitude'] = soup.find(class_='btn-layout')['data-course-lng']
+                except:
+                    atts['Lattitude'] = None
+                    atts['Longitude'] = None
+                new_item.update(atts)
+            except:
+                self.missing_courses.append(i)
+            try:
+                soup = BeautifulSoup(item['info'], 'html.parser')
+                address_item = {'Address': None,
+                                 'Phone': None,
+                                 'Website': None,
+                                 'Images': None,
+                                 'Built': None,
+                                 'Type': None,
+                                 'Season': None}
+                post_address = ''
+                try:
+                    address = soup.find_all(class_='address')
+                    for line in address:
+                        line = line.text.split(',')[0]
+                        post_address += ' ' + line
+                    if post_address == '':
+                        post_address = None
+                    address_item['Address'] = post_address
+                except:
+                    address = None
+                try:
+                    phone = soup.find(itemprop='telephone').text
+                    if phone == '':
+                        phone = None
+                    address_item['Phone'] = phone
+                except:
+                    phone = None
+                try:
+                    website = soup.find(itemprop='sameAs').text
+                    if website == '':
+                        website = None
+                    address_item['Website'] = website
+                except:
+                    website = None
+                try:
+                    image_links = []
+                    images = soup.find_all('script')
+                    for image in images:
+                        url = json.loads(image.text)['contentUrl']
+                        image_links.append(url)
+                    if image_links == []:
+                        image_links = None
+                    address_item['Images'] = image_links
+                except:
+                    image_links = None
+                try:
+                    divs = soup.find_all('div')
+                    for j in xrange(-5, 0):
+                        try:
+                            class_ = divs[j]['class']
+                        except:
+                            class_ = 'None'
+                        if class_ != 'more-info-icon':
+                            continue
+                        elif class_ == 'None':
+                            splits = divs[j].text.split(': ')
+                            if splits[0] == 'Built':
+                                address_item[splits[0]] = int(splits[1])
+                            else:
+                                address_item[splits[0]] = splits[1]
+                except:
+                    divs = None
+                new_item.update(address_item)
+            except:
+                self.missing_courses.append(i)
+            print 'Course ', i, 'successfully parsed'
+            # try:
+            #     soup = BeautifulSoup(item['more'], 'html.parser')
+            #     more_info = {'Carts': None,
+            #                  'Pull-carts': None,
+            #                  'Clubs': None,
+            #                  'Caddies': None,
+            #                  'GPS': None,
+            #                  'Practice Instruction'
+            #                  'Driving range': None,
+            #                  'Pitching_chipping area': None,
+            #                  'Putting green': None,
+            #                  'Practice bunker': None,
+            #                  'Simulator': None,
+            #                  'Teaching pro': None,
+            #                  'Golf schoolacademy': None,
+            #                  'Walking': None,
+            #                  'Spikes': None,
+            #                  'Credit Cards': None,
+            #                  'Dress_Code': None}
+            #     more = soup.find_all('div')
+            #     for item in more[3:6]:
+            #         sub_item = item.spit(': ')
+            #         more_info[sub_item[0]] = sub_item[1]
+            #     for item in more[7:13]:
+            #         sub_item = item.split(': ')
+            #         more_info[sub_item[0]] = sub_item[1]
+            #     for item in more[14:17]:
+            #         sub_item = item.split(': ')
+            #         more_info[sub_item[0]] = sub_item[1]
+            #     new_item.update(more_info)
+            # except:
+            #     self.missing_courses.append(i)
+            try:
+                self.course_table.put_item(Item=new_item)
+            except:
+                print '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCourse' ,i, 'Failed\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n'
+
+
     def multiprocess_build_mat(self, pool_size, iterable):
         pool = multiprocessing.Pool(pool_size)
         pool.map(self.build_mat, iterable)
         pool.close()
         pool.join()
-
-
+        # TODO: look into making methods pickleable for multiprocessing, currently fails.
 
     def build_mat(self, indices):
         for i in indices:
@@ -451,7 +598,7 @@ class GolfAdvisor(object):
 
         for i in indices:
             print 'Course index', i, 'html parsed.'
-            response = review_table.query(KeyConditionExpression=Key('Course_Id').eq(i))
+            response = self.review_table.query(KeyConditionExpression=Key('Course_Id').eq(i))
             items = response['Items']
             while 'LastEvaluatedKey' in response.keys():
                 response = review_table.query(
@@ -579,7 +726,7 @@ class GolfAdvisor(object):
                             ':pos': positive,
                             ':neg': negative}
                     )
-                    user_table.update_item(
+                    self.user_table.update_item(
                         Key={
                              'User_Id': user_id
                         },
@@ -614,6 +761,7 @@ if __name__ == '__main__':
     review_table = ddb.Table('Course_Reviews')
     read_table = ddb.Table('Scrape_Status')
     users_table = ddb.Table('Users')
+    course_table = ddb.Table('Courses')
     if len(sys.argv) == 1:
         if not os.path.exists('course_links.pkl'):
             ga = GolfAdvisor()
@@ -661,12 +809,17 @@ if __name__ == '__main__':
             with open('recommender.pkl', 'w') as f:
                 pickle.dump(recommender, f)
         elif sys.argv[1] == 'parse':
-            ga = GolfAdvisor(load_courses(), load_users(), )
-            ga.parallel_query_reviews(ga.parse_reviews, 16, review_table, users_table)
+            ga = GolfAdvisor(load_courses(), load_users(), review_table=review_table, user_table=users_table)
+            ga.parallel_query_reviews(ga.parse_reviews, POOL_SIZE)
             with open('errors.pkl', 'w') as f:
                 pickle.dump(ga.error_items, f)
             with open('users2.pkl', 'w') as f:
                 pickle.dump(ga.users, f)
+        elif sys.argv[1] == 'parse_courses':
+            ga = GolfAdvisor(load_courses(), load_users(), info_table=info_table, course_table=course_table)
+            ga.parallel_query_reviews(ga.parse_course_info, POOL_SIZE)
+            with open('missing_course_info.pkl', 'w') as f:
+                pickle.dump(ga.missing_courses, f)
 
     # TODO: Implement test train split on ratings_mat using df.unstack().reset_index()
     # load matrix into pandas and change the names of the indices to user and course.

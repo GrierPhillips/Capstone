@@ -21,7 +21,7 @@ def nmf(V,Winit,Hinit,tol,timelimit,maxiter):
  gradW = dot(W, dot(H, H.T)) - dot(V, H.T)
  gradH = dot(dot(W.T, W), H) - dot(W.T, V)
  initgrad = norm(r_[gradW, gradH.T])
- print 'Init gradient norm %f' % initgrad 
+ print 'Init gradient norm %f' % initgrad
  tolW = max(0.001,tol)*initgrad
  tolH = tolW
 
@@ -30,11 +30,11 @@ def nmf(V,Winit,Hinit,tol,timelimit,maxiter):
   projnorm = norm(r_[gradW[logical_or(gradW<0, W>0)],
                                  gradH[logical_or(gradH<0, H>0)]])
   if projnorm < tol*initgrad or time() - initt > timelimit: break
-  
+
   (W, gradW, iterW) = nlssubprob(V.T,H.T,W.T,tolW,1000)
   W = W.T
   gradW = gradW.T
-  
+
   if iterW==1: tolW = 0.1 * tolW
 
   (H,gradH,iterH) = nlssubprob(V,W,H,tolH,1000)
@@ -54,18 +54,18 @@ def nlssubprob(V,W,Hinit,tol,maxiter):
  tol: stopping tolerance
  maxiter: limit of iterations
  """
- 
+
  H = Hinit
  WtV = dot(W.T, V)
- WtW = dot(W.T, W) 
+ WtW = dot(W.T, W)
 
  alpha = 1; beta = 0.1;
- for iter in xrange(1, maxiter):  
+ for iter in xrange(1, maxiter):
   grad = dot(WtW, H) - WtV
   projgrad = norm(grad[logical_or(grad < 0, H >0)])
   if projgrad < tol: break
 
-  # search step size 
+  # search step size
   for inner_iter in xrange(1,20):
    Hn = H - alpha*grad
    Hn = where(Hn > 0, Hn, 0)
@@ -75,7 +75,7 @@ def nlssubprob(V,W,Hinit,tol,maxiter):
    suff_decr = 0.99*gradd + 0.5*dQd < 0;
    if inner_iter == 1:
     decr_alpha = not suff_decr; Hp = H;
-   if decr_alpha: 
+   if decr_alpha:
     if suff_decr:
      H = Hn; break;
     else:
