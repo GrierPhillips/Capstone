@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, flash, redirect, url_for, session
 from wtforms import Form, StringField, validators, IntegerField, SelectField, TextAreaField
 import boto3
 from boto3.dynamodb.conditions import Key
-from flask_login import LoginManager
+from flask_login import UserMixin, LoginManager
 import os
 import cPickle as pickle
 import json
@@ -21,15 +21,12 @@ user_table = dynamo.Table('GR_Users')
 review_table = dynamo.Table('GR_Reviews')
 course_table = dynamo.Table('Courses')
 cities_table = dynamo.Table('Cities')
-# with open('recommender.pkl', 'r') as f:
-#     model = pickle.load(f)
-with open('../courses.pkl', 'r') as f:
+with open('recommender.pkl', 'r') as f:
+    model = pickle.load(f)
+with open('courses.pkl', 'r') as f:
     courses = pickle.load(f)
-with open('../users.pkl', 'r') as f:
+with open('users.pkl', 'r') as f:
     users = pickle.load(f)
-# with open('../courses.pkl', 'r') as f:
-#     courses = pickle.load(f)
-# course_choices = [(courses.index(course), course) for course in sorted(courses)]
 states = ['Alabama','Alaska','Arizona','Arkansas','California','Colorado',
          'Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho',
          'Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana',
@@ -363,9 +360,11 @@ def get_rex(name, location=None):
         return local_recs, loc
     else:
         courses_rated = [courses.index(course) for course in user_item['Reviewed_Courses']]
+        print courses_rated
         course_ratings = []
-        for i, course in enumerate(user_item['Reviewed_Courses']):
-            course_ratings.append(float(review_table.get_item(Key={'Course_Id': courses_rated[i], 'Username': name})['Item']['Rating']))
+        for course in courses_rated:
+            print course, name
+            course_ratings.append(float(review_table.get_item(Key={'Course_Id': course, 'Username': name})['Item']['Rating']))
         recs = model.top_n_recs_not_in_mat(courses_rated, course_ratings, model.n_items)
         local_recs = get_local_recs(recs, user_loc, 5)
         return local_recs, loc
@@ -404,4 +403,4 @@ def get_local_recs(user_recs, user_loc, n_courses=5):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', threaded=True)
+    app.run(host='0.0.0.0', threaded=True, port=80)

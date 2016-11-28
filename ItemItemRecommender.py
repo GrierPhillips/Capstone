@@ -3,18 +3,21 @@ import pandas as pd
 from scipy import sparse
 from sklearn.metrics.pairwise import cosine_similarity
 from time import time
+from sklearn.decomposition import NMF
 
 
 class ItemItemRecommender(object):
 
-    def __init__(self, neighborhood_size):
+    def __init__(self, neighborhood_size, ratings_mat):
         self.neighborhood_size = neighborhood_size
-
-    def fit(self, ratings_mat):
         self.ratings_mat = ratings_mat
         self.n_users = ratings_mat.shape[0]
         self.n_items = ratings_mat.shape[1]
-        self.item_sim_mat = cosine_similarity(self.ratings_mat.T)
+        self.nmf = NMF(n_components=50)
+        self.W = self.nmf.fit_transform(ratings_mat)
+
+    def fit(self):
+        self.item_sim_mat = cosine_similarity(self.H.T)
         self._set_neighborhoods()
 
     def _set_neighborhoods(self):

@@ -430,7 +430,7 @@ class GolfAdvisor(object):
                 try:
                     address = soup.find_all(class_='address')
                     add_atts = ['Address', 'City', 'State', 'Postal_Code', 'Country']
-                    for j, line in enumerate(address):   
+                    for j, line in enumerate(address):
                         if j == 0:
                             line = line.text.split(',')[0]
                             address_item[add_atts[j]] = line
@@ -523,13 +523,6 @@ class GolfAdvisor(object):
             # except:
             #     print '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCourse' ,i, 'Failed\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n'
 
-
-    def multiprocess_build_mat(self, pool_size, iterable):
-        pool = multiprocessing.Pool(pool_size)
-        pool.map(self.build_mat, iterable)
-        pool.close()
-        pool.join()
-        # TODO: look into making methods pickleable for multiprocessing, currently fails.
 
     def build_mat(self, indices):
         for i in indices:
@@ -768,7 +761,7 @@ if __name__ == '__main__':
     info_table = ddb.Table('Courses_Info')
     review_table = ddb.Table('Course_Reviews_Raw')
     read_table = ddb.Table('Scrape_Status')
-    users_table = ddb.Table('GR_Users2')
+    users_table = ddb.Table('Users')
     course_table = ddb.Table('Courses')
     if len(sys.argv) == 1:
         if not os.path.exists('course_links.pkl'):
