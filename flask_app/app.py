@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, flash, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session
 from wtforms import Form, StringField, validators, IntegerField, SelectField, TextAreaField
 import boto3
 from boto3.dynamodb.conditions import Key
-from flask_login import UserMixin, LoginManager
+from flask_login import LoginManager
 import os
 import cPickle as pickle
 import json
