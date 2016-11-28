@@ -21,8 +21,8 @@ user_table = dynamo.Table('GR_Users')
 review_table = dynamo.Table('GR_Reviews')
 course_table = dynamo.Table('Courses')
 cities_table = dynamo.Table('Cities')
-with open('recommender.pkl', 'r') as f:
-    model = pickle.load(f)
+# with open('recommender.pkl', 'r') as f:
+#     model = pickle.load(f)
 with open('../courses.pkl', 'r') as f:
     courses = pickle.load(f)
 with open('../users.pkl', 'r') as f:
