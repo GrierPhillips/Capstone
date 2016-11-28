@@ -23,23 +23,26 @@
         {% endfor %}
       {% else %}
         <p>It looks like you haven't set any profile attributes.</p>
-        <a href='/update_profile' class="btn btn-lg btn-outline">Update Profile</a>
       {% endif %}
+        <a href='/update_profile' class="btn btn-lg btn-outline">Update Profile</a>
 
 
     </div>
     <div class='row'>
       <h3>My Reviews</h3>
     </div>
+      <div class='row lead'>
+        <a href='/review' class='btn btn-lg btn-outline'>Review a Course</a>
+      </div>
       {% if reviews == None %}
           <div class="row lead">
             <p>It looks like you haven't reviewed any courses yet</p>
-            <a href='/review' class='btn btn-lg btn-outline'>Review a Course</a>
+
           </div>
       {% else %}
           {% for item in reviews %}
           <div class="row lead">
-              <h4>{{ course_name }}</h4>
+              <h4>{{ item['Course'] }}</h4>
               <h4>Review:</h4>
               <p>{{ item['Review'] }}</p>
               {% for attr in rev_attrs %}

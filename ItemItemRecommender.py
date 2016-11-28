@@ -37,6 +37,19 @@ class ItemItemRecommender(object):
         cleaned_out = np.nan_to_num(out)
         return cleaned_out
 
+    def pred_user_not_in_mat(self, courses_rated, ratings):
+        course_ratings_dict = {course_id: rating for course_id, rating in zip(courses_rated, ratings)}
+        courses_rated = np.array(courses_rated)
+        ratings = np.array(ratings)
+        out = np.zeros(self.n_items)
+        for item_to_rate in range(self.n_items):
+            relevant_items = np.intersect1d(self.neighborhoods[item_to_rate],
+                                            courses_rated,
+                                            assume_unique=True) # assume_unique speeds up intersection op
+            out[item_to_rate] = np.array([course_ratings_dict[key] for key in relevant_items]) * \
+                self.item_sim_mat[item_to_rate, relevant_items] / \
+                self.item_sim_mat[item_to_rate, relevant_items].sum()
+
     def pred_all_users(self, report_run_time=False):
         start_time = time()
         all_ratings = [
@@ -51,4 +64,11 @@ class ItemItemRecommender(object):
         items_rated_by_this_user = self.ratings_mat[user_id].nonzero()[1]
         unrated_items_by_pred_rating = [item for item in item_index_sorted_by_pred_rating
                                         if item not in items_rated_by_this_user]
+        return unrated_items_by_pred_rating[-n:]
+
+    def top_n_recs_not_in_mat(self, courses_rated, ratings, n):
+        pred_ratings = self.pred_user_not_in_mat(courses_rated, ratings)
+        item_index_sorted_by_pred_rating = list(np.argsort(pred_ratings))
+        unrated_items_by_pred_rating = [item for item in item_index_sorted_by_pred_rating
+                                        if item not in courses_rated]
         return unrated_items_by_pred_rating[-n:]

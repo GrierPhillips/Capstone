@@ -38,7 +38,10 @@ class MakeLocations(object):
         for i in indices:
             response = self.course_table.get_item(Key={'Course_Id': i})
             item = response['Item']
-            country = item['Country']
+            try:
+                country = item['Country']
+            except:
+                print item
             if country != 'USA':
                 continue
             state = item['State']

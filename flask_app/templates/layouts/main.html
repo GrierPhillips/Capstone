@@ -68,6 +68,11 @@
                         {% endif %}
                     </li>
                     <li class="page-scroll">
+                        {% if session['username'] %}
+                            <a href='/recommend'>Get Recommendation</a>
+                        {% endif %}
+                    </li>                        
+                    <li class="page-scroll">
                         <a href="/#about">About</a>
                     </li>
                     <li class="page-scroll">
