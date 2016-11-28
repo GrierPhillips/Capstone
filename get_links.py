@@ -364,6 +364,7 @@ class GolfAdvisor(object):
             pickle.dump(self.missing_users, f)
 
     def parallel_query_reviews(self, function, num_cores, *args):
+        # import pdb; pdb.set_trace()
         num = int(math.ceil(len(self.courses) / float(num_cores)))
         links = list(self.chunks(range(len(self.courses)), num))
         jobs = []
@@ -379,10 +380,7 @@ class GolfAdvisor(object):
 
     def parse_course_info(self, indices):
         for i in indices:
-            try:
-                response = self.info_table.get_item(Key={'Course_Id': i})
-            except:
-
+            response = self.info_table.get_item(Key={'Course_Id': i})
             item = response['Item']
             new_item = {}
             new_item['Course'] = item['Course']
@@ -419,21 +417,28 @@ class GolfAdvisor(object):
             try:
                 soup = BeautifulSoup(item['info'], 'html.parser')
                 address_item = {'Address': None,
+                                'City': None,
+                                'State': None,
+                                'Postal_Code': None,
+                                'Country': None,
                                  'Phone': None,
                                  'Website': None,
                                  'Images': None,
                                  'Built': None,
                                  'Type': None,
                                  'Season': None}
-                post_address = ''
                 try:
                     address = soup.find_all(class_='address')
-                    for line in address:
-                        line = line.text.split(',')[0]
-                        post_address += ' ' + line
-                    if post_address == '':
-                        post_address = None
-                    address_item['Address'] = post_address
+                    add_atts = ['Address', 'City', 'State', 'Postal_Code', 'Country']
+                    for j, line in enumerate(address):   
+                        if j == 0:
+                            line = line.text.split(',')[0]
+                            address_item[add_atts[j]] = line
+                        elif line.text == '':
+                            continue
+                        else:
+                            address_item[add_atts[j]] = line.text
+                    # print address_item
                 except:
                     address = None
                 try:
@@ -514,10 +519,9 @@ class GolfAdvisor(object):
             #     new_item.update(more_info)
             # except:
             #     self.missing_courses.append(i)
-            try:
-                self.course_table.put_item(Item=new_item)
-            except:
-                print '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCourse' ,i, 'Failed\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n'
+            self.course_table.put_item(Item=new_item)
+            # except:
+            #     print '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCourse' ,i, 'Failed\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n'
 
 
     def multiprocess_build_mat(self, pool_size, iterable):
@@ -593,7 +597,7 @@ class GolfAdvisor(object):
                 continue
             return link.split('.com')[-1]
 
-    def parse_reviews(self, indices, review_table, user_table):
+    def parse_reviews(self, indices):
         self.error_items = {}
 
         for i in indices:
@@ -601,7 +605,7 @@ class GolfAdvisor(object):
             response = self.review_table.query(KeyConditionExpression=Key('Course_Id').eq(i))
             items = response['Items']
             while 'LastEvaluatedKey' in response.keys():
-                response = review_table.query(
+                response = self.review_table.query(
                     KeyConditionExpression=Key('Course_Id').eq(i),
                     ExclusiveStartKey=response['LastEvaluatedKey']
                 )
@@ -622,6 +626,7 @@ class GolfAdvisor(object):
                     # import pdb; pdb.set_trace()
                     try:
                         user_id = self.users.index(item['Username'])
+                        user_item = {'Username': item['Username'], 'User_Id': user_id}
                     except:
                         self.users.append(item['Username'])
                         user_id = self.users.index(item['Username'])
@@ -699,7 +704,7 @@ class GolfAdvisor(object):
                         recommend = None
                     positive = int(soup.find(class_="btn btn-link submit-feedback-link submit-review-positive-feedback-link").span.text)
                     negative = int(soup.find(class_="btn btn-link submit-feedback-link submit-review-negative-feedback-link").span.text)
-                    review_table.update_item(
+                    self.review_table.update_item(
                         Key={
                              'Course_Id': i,
                              'Username': item['Username']
@@ -726,19 +731,22 @@ class GolfAdvisor(object):
                             ':pos': positive,
                             ':neg': negative}
                     )
-                    self.user_table.update_item(
-                        Key={
-                             'User_Id': user_id
-                        },
-                        UpdateExpression="set Age = :a, Gender = :g, Skill = :s, Plays = :p, Handicap = :h",
-                        ExpressionAttributeValues={
-                            ':a': age,
-                            ':g': gen,
-                            ':s': skill,
-                            ':p': plays,
-                            ':h': hdcp
-                        }
-                    )
+                    # self.user_table.update_item(
+                    #     Key={
+                    #          'User_Id': user_id
+                    #     },
+                    #     UpdateExpression="set Age = :a, Gender = :g, Skill = :s, Plays = :p, Handicap = :h",
+                    #     ExpressionAttributeValues={
+                    #         ':a': age,
+                    #         ':g': gen,
+                    #         ':s': skill,
+                    #         ':p': plays,
+                    #         ':h': hdcp
+                    #     }
+                    # )
+                    user_atts = {'Age': age, 'Gender': gen, 'Skill': skill, 'Plays': plays, 'Handicap': hdcp}
+                    user_item.update(user_atts)
+                    self.user_table.put_item(Item=user_item)
 
 
 if __name__ == '__main__':
@@ -758,9 +766,9 @@ if __name__ == '__main__':
 
     ddb = boto3.resource('dynamodb', region_name='us-west-2')
     info_table = ddb.Table('Courses_Info')
-    review_table = ddb.Table('Course_Reviews')
+    review_table = ddb.Table('Course_Reviews_Raw')
     read_table = ddb.Table('Scrape_Status')
-    users_table = ddb.Table('Users')
+    users_table = ddb.Table('GR_Users2')
     course_table = ddb.Table('Courses')
     if len(sys.argv) == 1:
         if not os.path.exists('course_links.pkl'):

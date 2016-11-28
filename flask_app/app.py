@@ -18,6 +18,18 @@ course_table = dynamo.Table('Courses')
 with open('../courses.pkl', 'r') as f:
     courses = pickle.load(f)
 course_choices = [(courses.index(course), course) for course in sorted(courses)]
+states = ['Alabama','Alaska','Arizona','Arkansas','California','Colorado',
+         'Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho',
+         'Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana',
+         'Maine' 'Maryland','Massachusetts','Michigan','Minnesota',
+         'Mississippi', 'Missouri','Montana','Nebraska','Nevada',
+         'New Hampshire','New Jersey','New Mexico','New York',
+         'North Carolina','North Dakota','Ohio',
+         'Oklahoma','Oregon','Pennsylvania','Rhode Island',
+         'South  Carolina','South Dakota','Tennessee','Texas','Utah',
+         'Vermont','Virginia','Washington','West Virginia',
+         'Wisconsin','Wyoming']
+state_choices = [(state, state) for state in states]
 
 class RegistrationForm(Form):
     username = StringField('Username', validators=[validators.Length(min=3, max=25)])
@@ -40,7 +52,9 @@ class UpdateProfileForm(Form):
     plays = SelectField('Plays', choices=[('once', 'Once a year'),('twice', 'Twice a year'),('four', 'Once every three months'),('twelve', 'Once a month'),('fity-two', 'Once a week'),('fifty-two-plus', 'A few times a week')])
 
 class ReviewForm(Form):
-    course = SelectField('Course', choices=course_choices)
+    state = SelectField('State', choices=state_choices)
+    city = SelectField('City')
+    course = StringField('Course')
     review = TextAreaField('Review')
 
 @app.route('/', methods=['GET'])
@@ -176,9 +190,9 @@ def do_update(atts):
 @app.route('/review', methods=['GET', 'POST'])
 def review():
     form = ReviewForm(request.form)
-    form.course.choices = [(courses.index(course), course) for course in sorted(courses)]
+    form.city.choices = []
     print request.data
-    return render_template('review.html', form=form, courses=course_choices)
+    return render_template('review.html', form=form, courses=courses)
 
 
 if __name__ == '__main__':

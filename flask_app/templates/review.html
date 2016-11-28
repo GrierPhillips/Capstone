@@ -31,12 +31,15 @@
               <div class="control-group">
                 <label class="control-label" for="course">Select a course</label>
                 <div class="controls">
-                  <select name='course'>
-                    <option disabled='True' selected='selected'>Select a Course</option>
+                  <input type='text' id='course' name='course' placeholder='Enter course name' class='form-control input-lg' data-source='{{ courses }}'>
+                  <!--<select name='course'>
+                    <option disabled='True' selected='selected'>Select a Course</option>-->
+                  <!--<input list='courses' name='course'>
+                  <datalist id='courses'>
                     {% for course in courses %}
                         <option value='{{ course }}'>{{course}}</option>
                     {% endfor %}
-                  </select>
+                  </datalist>-->
 
                   <!--<input type="text" id="username" name="username" placeholder="Username" class="form-control input-lg">
                   <p class="help-block">Username can contain any letters or numbers, without spaces</p> -->
@@ -68,4 +71,13 @@
 {% endblock %}
 {% block script %}
 <script src='static/js/ratings.js'></script>
+<script>
+$( function() {
+    var availableCourses = ['Robina Woods'];
+    $( "#course" ).autocomplete({
+      source: availableCourses
+    });
+  } );
+
+</script>
 {% endblock %}
