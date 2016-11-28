@@ -22,16 +22,22 @@
   <div class="container">
       <div class="row">
         <div class='col-md-12'>
-          <form class="form-horizontal" action="/signup" method="POST" role=form>
+          <form class="form-horizontal" action="/review" method="POST" role=form>
             {{ form.csrf_token }}
             <fieldset>
               <div id="legend">
                 <legend class="">Write a Review</legend>
               </div>
               <div class="control-group">
-                <label class="control-label" for="course">Select a course</label>
+                <label class="control-label" for="state">Select a State</label>
                 <div class="controls">
-                  <input type='text' id='course' name='course' placeholder='Enter course name' class='form-control input-lg' data-source='{{ courses }}'>
+                  <!--<input type='text' id='course' name='course' placeholder='Enter course name' class='form-control input-lg' data-source='{{ courses }}'>-->
+                  <select name='State' id='state'>
+                    <option disabled='True' selected='selected'>Select a State</option>
+                    {% for state in states %}
+                      <option value='{{ state }}'>{{ state }}</option>
+                    {% endfor %}
+                  </select>
                   <!--<select name='course'>
                     <option disabled='True' selected='selected'>Select a Course</option>-->
                   <!--<input list='courses' name='course'>
@@ -43,6 +49,19 @@
 
                   <!--<input type="text" id="username" name="username" placeholder="Username" class="form-control input-lg">
                   <p class="help-block">Username can contain any letters or numbers, without spaces</p> -->
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label class="control-label" for="course">Select a Course</label>
+                <div class="controls">
+                  <!--<input type='text' id='course' name='course' placeholder='Enter course name' class='form-control input-lg' data-source='{{ courses }}'>-->
+                  <select name='Course' id='course'>
+                    <option disabled='True' selected='selected'>Select a Course</option>
+                    <!--{% for course in states %}
+                      <option value='{{ state }}'>{{ state }}</option>
+                    {% endfor %}-->
+                  </select>
                 </div>
               </div>
 
@@ -80,4 +99,32 @@ $( function() {
   } );
 
 </script>
+<script>
+$('#sf_baclient').on('change', function() {
+
+      $("#sf_clientplan").empty();
+
+      baclient_name = $("#sf_baclient option:selected").text();
+      baclient_id = $("#sf_baclient option:selected").val();
+
+      //Sending variables containing selection info to parse_data function in python.
+      // jQuery's builtin ajax functions make things super easy
+
+      // Calling that parse url and sending it arguments
+      $.getJSON($SCRIPT_ROOT + '/_parse_data', {
+          a: baclient_name,
+          b: baclient_id
+
+      // Function to get data returned from parse_data and populate the second select field.
+      }, function(data) {
+          // Using jQuery to populate new entries we got from flask.
+          var options = $("#sf_clientplan");
+          $.each(data, function() {
+              options.append($("<option />").val(this).text(this));
+          });
+
+      });
+    });
+</script>
+
 {% endblock %}

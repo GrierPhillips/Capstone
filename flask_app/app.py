@@ -15,9 +15,9 @@ dynamo = boto3.resource('dynamodb', region_name='us-west-2')
 user_table = dynamo.Table('GR_Users')
 review_table = dynamo.Table('GR_Reviews')
 course_table = dynamo.Table('Courses')
-with open('../courses.pkl', 'r') as f:
-    courses = pickle.load(f)
-course_choices = [(courses.index(course), course) for course in sorted(courses)]
+# with open('../courses.pkl', 'r') as f:
+#     courses = pickle.load(f)
+# course_choices = [(courses.index(course), course) for course in sorted(courses)]
 states = ['Alabama','Alaska','Arizona','Arkansas','California','Colorado',
          'Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho',
          'Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana',
@@ -192,7 +192,7 @@ def review():
     form = ReviewForm(request.form)
     form.city.choices = []
     print request.data
-    return render_template('review.html', form=form, courses=courses)
+    return render_template('review.html', form=form, states=states)
 
 
 if __name__ == '__main__':
