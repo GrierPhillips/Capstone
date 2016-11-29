@@ -1,21 +1,22 @@
-from flask import Flask, render_template, request, flash, redirect, url_for, session
-from wtforms import Form, StringField, validators, IntegerField, SelectField, TextAreaField
+from flask import Flask, render_template, request, redirect, url_for, session
 import boto3
 from boto3.dynamodb.conditions import Key
-from flask_login import UserMixin, LoginManager
+from flask_login import LoginManager
 import os
 import cPickle as pickle
 import json
 import geocoder
 from math import radians, cos, sin, asin, sqrt
 from decimal import Decimal
-
+from concurrent.futures import ThreadPoolExecutor
+from forms import RegistrationForm, LoginForm, UpdateProfileForm, ReviewForm, RecommendationForm, states
 
 app = Flask(__name__)
 app.debug = True
 app.secret_key = os.environ['GOLFRECS_KEY']
 login_manager = LoginManager()
 login_manager.init_app(app)
+executor = ThreadPoolExecutor(max_workers=None)
 dynamo = boto3.resource('dynamodb', region_name='us-west-2')
 user_table = dynamo.Table('GR_Users')
 review_table = dynamo.Table('GR_Reviews')
@@ -23,66 +24,21 @@ course_table = dynamo.Table('Courses')
 cities_table = dynamo.Table('Cities')
 with open('recommender.pkl', 'r') as f:
     model = pickle.load(f)
+model.fit()
+model.W = None
+model.H = None
 with open('courses.pkl', 'r') as f:
     courses = pickle.load(f)
 with open('users.pkl', 'r') as f:
     users = pickle.load(f)
-states = ['Alabama','Alaska','Arizona','Arkansas','California','Colorado',
-         'Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho',
-         'Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana',
-         'Maine' 'Maryland','Massachusetts','Michigan','Minnesota',
-         'Mississippi', 'Missouri','Montana','Nebraska','Nevada',
-         'New Hampshire','New Jersey','New Mexico','New York',
-         'North Carolina','North Dakota','Ohio',
-         'Oklahoma','Oregon','Pennsylvania','Rhode Island',
-         'South  Carolina','South Dakota','Tennessee','Texas','Utah',
-         'Vermont','Virginia','Washington','West Virginia',
-         'Wisconsin','Wyoming']
-state_choices = [(state, state) for state in states]
-
-class RegistrationForm(Form):
-    username = StringField('Username', validators=[validators.Length(min=3, max=25)])
-    email = StringField('Email Address', validators=[validators.Length(min=6, max=35)])
-    city = SelectField('city', validators=[validators.DataRequired()])
-    state = SelectField('state', validators=[validators.DataRequired()])
-    password = StringField('New Password', [
-        validators.DataRequired(),
-        validators.EqualTo('password_confirm', message='Passwords must match')
-    ])
-    password_confirm = StringField('Repeat Password')
-
-class LoginForm(Form):
-    username = StringField('Username', validators=[validators.Length(min=3, max=25)])
-    password = StringField('Password', validators=[validators.DataRequired()])
-
-class UpdateProfileForm(Form):
-    age = IntegerField('Age')
-    gender = SelectField('Gender', choices=[('female', 'Female'), ('male', 'Male'), ('none', 'Choose Not To Identify')])
-    skill = SelectField('Skill', choices=[('beginner', 'Beginner'), ('intermediate', 'Intermediate'), ('advanced', 'Adavanced')])
-    handicap = SelectField('Handicap', choices=[('0-4', '0-4'), ('5-9','5-9'),('10-14','10-14'),('15-19','15-19'),('20-24','20-24'),('25+','25+'),('dont-know', "Don't know")])
-    plays = SelectField('Plays', choices=[('once', 'Once a year'),('twice', 'Twice a year'),('four', 'Once every three months'),('twelve', 'Once a month'),('fity-two', 'Once a week'),('fifty-two-plus', 'A few times a week')])
-    state = SelectField('State', choices=state_choices)
-    city = SelectField('City')
-
-class ReviewForm(Form):
-    state = SelectField('State', choices=state_choices, validators=[validators.Required()])
-    course = SelectField('Course', validators=[validators.Required()])
-    review = TextAreaField('Review')
-    rating = SelectField('Rating', validators=[validators.Required()])
-    conditions = SelectField('Condition')
-    difficulty = SelectField('Difficulty')
-    layout = SelectField('Layout')
-    pace = SelectField('Pace')
-    staff = SelectField('Staff')
-    value = SelectField('Value')
-    amenities = SelectField('Amenities')
-
-class RecommendationForm(Form):
-    state = SelectField('State', choices=state_choices)
-    city = SelectField('City')
+future = None
 
 @app.route('/', methods=['GET'])
 def index():
+    if session.get('username'):
+        print 'running get_rex'
+        global future
+        future = executor.submit(get_rex, session['username'].lower())
     return render_template('index.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -315,12 +271,14 @@ def get_cities():
 
 @app.route('/recommend', methods=['POST', 'GET'])
 def recommend():
+    print request.method
+    print future.result()
     form = RecommendationForm(request.form)
     city = request.form.get('city')
     state = request.form.get('state')
     items = None
     error = None
-    recommendations, loc = get_rex(session['username'].lower())
+    recommendations, loc = future.result()
     if request.method == 'POST':
         if not state and not city:
             error = 'You must select a city and state'
@@ -363,8 +321,10 @@ def get_rex(name, location=None):
         print courses_rated
         course_ratings = []
         for course in courses_rated:
-            print course, name
-            course_ratings.append(float(review_table.get_item(Key={'Course_Id': course, 'Username': name})['Item']['Rating']))
+            course = courses[course]
+            response = review_table.get_item(Key={'Course': course, 'Username': name})
+            rating = response['Item']['Rating']
+            course_ratings.append(Decimal(rating))
         recs = model.top_n_recs_not_in_mat(courses_rated, course_ratings, model.n_items)
         local_recs = get_local_recs(recs, user_loc, 5)
         return local_recs, loc
@@ -386,7 +346,7 @@ def haversine(lon1, lat1, lon2, lat2):
 
 def get_local_recs(user_recs, user_loc, n_courses=5):
     local_recs = []
-    while len(local_recs < 5):
+    while len(local_recs)< 5:
         for rec in user_recs:
             course = course_table.get_item(Key={'Course_Id': rec})['Item']
             if not course['Lattitude']:
@@ -395,7 +355,7 @@ def get_local_recs(user_recs, user_loc, n_courses=5):
                                          UpdateExpression='SET Lattitude = :lat, Longitude = :lng',
                                          ExpressionAttributeValues={':lat': site[0], ':lng': site[1]})
                 course = course_table.get_item(Key={'Course_Id': rec})['Item']
-            d = haversine(user_loc[1], user_loc[0], course['Lattitude'], course['Longitude'])
+            d = haversine(user_loc[1], user_loc[0], float(course['Lattitude']), float(course['Longitude']))
             if d < 100:
                 local_recs.append(rec)
     return local_recs
@@ -403,4 +363,4 @@ def get_local_recs(user_recs, user_loc, n_courses=5):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', threaded=True, port=80)
+    app.run(host='0.0.0.0', threaded=True)

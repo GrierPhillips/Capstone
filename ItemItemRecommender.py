@@ -17,7 +17,7 @@ class ItemItemRecommender(object):
         self.W = self.nmf.fit_transform(ratings_mat)
 
     def fit(self):
-        self.item_sim_mat = cosine_similarity(self.H.T)
+        self.item_sim_mat = cosine_similarity(self.nmf.components_.T)
         self._set_neighborhoods()
 
     def _set_neighborhoods(self):
@@ -42,6 +42,7 @@ class ItemItemRecommender(object):
 
     def pred_user_not_in_mat(self, courses_rated, ratings):
         course_ratings_dict = {course_id: rating for course_id, rating in zip(courses_rated, ratings)}
+        print course_ratings_dict
         courses_rated = np.array(courses_rated)
         ratings = np.array(ratings)
         out = np.zeros(self.n_items)
@@ -49,9 +50,10 @@ class ItemItemRecommender(object):
             relevant_items = np.intersect1d(self.neighborhoods[item_to_rate],
                                             courses_rated,
                                             assume_unique=True) # assume_unique speeds up intersection op
-            out[item_to_rate] = np.array([course_ratings_dict[key] for key in relevant_items]) * \
-                self.item_sim_mat[item_to_rate, relevant_items] / \
-                self.item_sim_mat[item_to_rate, relevant_items].sum()
+            print np.array([course_ratings_dict[key] for key in relevant_items])
+            print self.item_sim_mat[item_to_rate, relevant_items]
+            print self.item_sim_mat[item_to_rate, relevant_items].sum()
+            out[item_to_rate] = np.array([course_ratings_dict[key] for key in relevant_items]) * self.item_sim_mat[item_to_rate, relevant_items] / self.item_sim_mat[item_to_rate, relevant_items].sum()
 
     def pred_all_users(self, report_run_time=False):
         start_time = time()
