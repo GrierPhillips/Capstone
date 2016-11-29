@@ -36,9 +36,12 @@ future = None
 @app.route('/', methods=['GET'])
 def index():
     if session.get('username'):
-        print 'running get_rex'
         global future
-        future = executor.submit(get_rex, session['username'].lower())
+        if future.running():
+            print 'get_rex still running'
+        else:
+            print 'running get_rex'
+            future = executor.submit(get_rex, session['username'].lower())
     return render_template('index.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -315,6 +318,7 @@ def get_rex(name, location=None):
     if user_id < model.ratings_mat.shape[0]:
         recs = model.top_n_recs(user_id, model.n_items)
         local_recs = get_local_recs(recs, user_loc, 5)
+        print local_recs
         return local_recs, loc
     else:
         courses_rated = [courses.index(course) for course in user_item['Reviewed_Courses']]
@@ -327,6 +331,7 @@ def get_rex(name, location=None):
             course_ratings.append(Decimal(rating))
         recs = model.top_n_recs_not_in_mat(courses_rated, course_ratings, model.n_items)
         local_recs = get_local_recs(recs, user_loc, 5)
+        print local_recs
         return local_recs, loc
 
 def haversine(lon1, lat1, lon2, lat2):
