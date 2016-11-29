@@ -6,7 +6,7 @@ plt.style.use('fivethirtyeight')
 
 
 
-def graph_err():
+def graph_err(start=2, stop=103, step=5):
     '''
     Graph reconstruction_err for values of n_components of NMF from 2-100
     '''
@@ -14,7 +14,7 @@ def graph_err():
         ratings_mat = pickle.load(f)
 
     err = []
-    x = np.arange(2,101)
+    x = np.arange(start,stop,step)
     for i in x:
         nmf = NMF(n_components=i)
         nmf.fit(ratings_mat)
