@@ -307,7 +307,7 @@ def recommend():
             course_links.append(response['Website'])
         course_names.append(response['Name'])
         if not response.get('Images'):
-            images.append('/static/img/no_images.png')
+            images.append('localhost:5000/static/img/no_images.png')
         else:
             images.append(response['Images'][0])
     items = {'Names': course_names, 'Links': course_links, 'Images': images, 'Location': loc}
