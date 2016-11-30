@@ -10,6 +10,7 @@ from math import radians, cos, sin, asin, sqrt
 from decimal import Decimal
 from concurrent.futures import ThreadPoolExecutor
 from forms import RegistrationForm, LoginForm, UpdateProfileForm, ReviewForm, RecommendationForm, states
+from time import sleep
 
 app = Flask(__name__)
 app.debug = True
@@ -285,7 +286,8 @@ def recommend():
             error = 'You must select a city and state'
             return render_template('recommend.html', error=error, items=items, form=form, states=states)
         location = city + ', ' + state
-        recommendations, loc = get_rex(session['username'].lower(), location=location)
+        result = executor(get_rex, session['username'].lower(), location)
+        recommendations, loc = result[0], result[1]
         course_links = []
         course_names = []
         images = []

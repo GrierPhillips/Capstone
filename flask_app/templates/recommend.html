@@ -50,7 +50,7 @@
             <div class="control-group">
               <!-- Button -->
               <div class="controls">
-                <button class="btn btn-success" type='submit'>Get Recommendations</button>
+                <button class="btn btn-success" type='submit' onclick='loading();'>Get Recommendations</button>
               </div>
             </div>
           </div>
@@ -100,6 +100,12 @@ $('#state').on('change', function() {
       });
     });
 </script>
+<script type="text/javascript">// <![CDATA[
+        function loading(){
+            $("#loading").show();
+            $("#content").hide();
+        }
+// ]]></script>
 
 
 {% endblock %}
