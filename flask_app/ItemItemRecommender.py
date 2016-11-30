@@ -47,22 +47,18 @@ class ItemItemRecommender(object):
     def pred_one_user_not_in_mat(self, courses_rated, ratings):
         courses_rated = np.array(courses_rated)
         ratings = np.array(ratings)
-        sim_courses = np.array([])
-        for course in courses_rated:
-            sim_courses = np.append(sim_courses, self.neighborhoods[course])
-        sim_courses = np.unique(sim_courses)
-        out = np.zeros(len(sim_courses))
-        for item in sim_courses:
-            index_of_courses = []
-            courses_in_neighborhood = []
-            for i, course in enumerate(courses_rated):
-                if course in self.neighborhoods[item]:
-                    index_of_courses.append(np.where(self.neighbor_sim[item] == course)[0][0])
-                    courses_in_neighborhood.append(i)
-            print ratings[courses_in_neighborhood], self.neighbor_sim[item, index_of_courses], self.neighbor_sim[item, index_of_courses].sum()
-            out[item] =  ratings[courses_in_neighborhood] * self.neighbor_sim[item, index_of_courses] / self.neighbor_sim[item, index_of_courses].sum()
+        # Just initializing so we have somewhere to put rating preds
+        out = np.zeros(self.n_items)
+        for course in range(self.n_items):
+            relevant_items = np.intersect1d(self.neighborhoods[course],
+                                            courses_rated,
+                                            assume_unique=True)  # assume_unique speeds up intersection op
+            relevant_courses = [np.where(courses_rated == x) for x in relevant_items]
+            out[course] = ratings[relevant_courses] * \
+                self.item_sim_mat[course, relevant_items] / \
+                self.item_sim_mat[course, relevant_items].sum()
         cleaned_out = np.nan_to_num(out)
-        return cleaned_out, sim_courses
+        return cleaned_out
 
     def pred_all_users(self, report_run_time=False):
         start_time = time()

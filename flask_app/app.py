@@ -332,7 +332,7 @@ def get_rex(name, location=None):
         return local_recs, loc
     else:
         courses_rated = [courses.index(course) for course in user_item['Reviewed_Courses']]
-        print courses_rated
+        print 'courses rated', courses_rated
         course_ratings = []
         for course in courses_rated:
             course = courses[course]
@@ -341,7 +341,7 @@ def get_rex(name, location=None):
             course_ratings.append(Decimal(rating))
         recs = model.top_n_recs_not_in_mat(courses_rated, course_ratings, model.n_items)
         local_recs = get_local_recs(recs, user_loc, 5)
-        print local_recs
+        print 'local recs', local_recs
         return local_recs, loc
 
 def haversine(lon1, lat1, lon2, lat2):
