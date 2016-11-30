@@ -56,12 +56,12 @@ class ItemItemRecommender(object):
             relevant_courses = [np.where(courses_rated == x) for x in relevant_items]
             # print type(relevant_items), type(relevant_courses), self.item_sim_mat[course, relevant_items.sum()]
             # print float(ratings[relevant_courses]).dot(self.item_sim_mat[course, relevant_items]), self.item_sim_mat[course, relevant_items].sum()
-            try:
-                out[course] = ratings[relevant_courses].dot(self.item_sim_mat[course, relevant_items]) / \
-                    self.item_sim_mat[course, relevant_items].sum()
-            except:
-                out[course] = 0.0
-                print course, relevant_items
+            # try:
+            out[course] = ratings[relevant_courses].dot(self.item_sim_mat[course, relevant_items]) / \
+                self.item_sim_mat[course, relevant_items].sum()
+            # except:
+            #     continue
+            #     print course, relevant_items
         cleaned_out = np.nan_to_num(out)
         return cleaned_out
 
