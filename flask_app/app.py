@@ -286,14 +286,16 @@ def recommend():
     state = request.form.get('state')
     items = None
     error = None
-    recommendations, loc = future.result()
+    recommendations = None
+    loc = None
+    recommendations, loc = future.result()[0], future.result()[1]
     if request.method == 'POST':
         if not state and not city:
             error = 'You must select a city and state'
             return render_template('recommend.html', error=error, items=items, form=form, states=states)
         location = city + ', ' + state
-        result = executor(get_rex, session['username'].lower(), location)
-        recommendations, loc = result[0], result[1]
+        result = executor.submit(get_rex, session['username'].lower(), location)
+        recommendations, loc = result.result()[0], result.result()[1]
     course_links = []
     course_names = []
     images = []
