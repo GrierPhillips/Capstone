@@ -340,9 +340,10 @@ def get_rex(name, location=None):
             rating = response['Item']['Rating']
             course_ratings.append(Decimal(rating))
         recs = model.top_n_recs_not_in_mat(courses_rated, course_ratings, model.n_items)
-        local_recs = get_local_recs(recs, user_loc, 5)
-        print 'local recs', local_recs
-        return local_recs, loc
+        # local_recs = get_local_recs(recs, user_loc, 5)
+        # print 'local recs', local_recs
+        # return local_recs, loc
+        return recs, loc
 
 def haversine(lon1, lat1, lon2, lat2):
     """
