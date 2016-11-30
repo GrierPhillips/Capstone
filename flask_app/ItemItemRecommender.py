@@ -88,5 +88,5 @@ class ItemItemRecommender(object):
         sorted_ratings = np.argsort(pred_ratings)
         unrated_courses_sorted_rating = [item for item in sorted_ratings
                                         if item not in courses_rated]
-        print sorted_ratings[:10], courses_rated
+        print pred_ratings[sorted_ratings[:10]], courses_rated
         return unrated_courses_sorted_rating[-n:]
