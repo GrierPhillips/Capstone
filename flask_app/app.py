@@ -16,7 +16,7 @@ app.debug = True
 app.secret_key = os.environ['GOLFRECS_KEY']
 login_manager = LoginManager()
 login_manager.init_app(app)
-executor = ThreadPoolExecutor(max_workers=None)
+executor = ThreadPoolExecutor(max_workers=2)
 dynamo = boto3.resource('dynamodb', region_name='us-west-2')
 user_table = dynamo.Table('GR_Users')
 review_table = dynamo.Table('GR_Reviews')
@@ -25,8 +25,6 @@ cities_table = dynamo.Table('Cities')
 with open('recommender.pkl', 'r') as f:
     model = pickle.load(f)
 model.fit()
-model.W = None
-model.H = None
 with open('courses.pkl', 'r') as f:
     courses = pickle.load(f)
 with open('users.pkl', 'r') as f:

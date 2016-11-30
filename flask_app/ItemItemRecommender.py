@@ -13,8 +13,9 @@ class ItemItemRecommender(object):
         self.ratings_mat = ratings_mat
         self.n_users = ratings_mat.shape[0]
         self.n_items = ratings_mat.shape[1]
-        self.nmf = NMF(n_components=50)
+        self.nmf = NMF(n_components=2)
         self.W = self.nmf.fit_transform(ratings_mat)
+        self.neighbor_sim = None
 
     def fit(self):
         self.item_sim_mat = cosine_similarity(self.nmf.components_.T)
@@ -23,41 +24,39 @@ class ItemItemRecommender(object):
     def _set_neighborhoods(self):
         least_to_most_sim_indexes = np.argsort(self.item_sim_mat, 1)
         self.neighborhoods = least_to_most_sim_indexes[:, -self.neighborhood_size:]
+        self.neighbor_sim = np.zeros(self.n_items * self.neighborhood_size).reshape((self.n_items, self.neighborhood_size))
+        for i in xrange(self.n_items):
+            self.neighbor_sim[i] = self.item_sim_mat[i, self.neighborhoods[i]]
+        # self.item_sim_mat = None
 
-    def pred_one_user(self, user_id, report_run_time=False):
-        start_time = time()
+    def pred_one_user(self, user_id):
         items_rated_by_this_user = self.ratings_mat[user_id].nonzero()[1]
         out = np.zeros(self.n_items)
-        for item_to_rate in range(self.n_items):
+        for item_to_rate in xrange(self.n_items):
             relevant_items = np.intersect1d(self.neighborhoods[item_to_rate],
                                             items_rated_by_this_user,
                                             assume_unique=True)  # assume_unique speeds up intersection op
             out[item_to_rate] = self.ratings_mat[user_id, relevant_items] * \
                 self.item_sim_mat[item_to_rate, relevant_items] / \
                 self.item_sim_mat[item_to_rate, relevant_items].sum()
-        if report_run_time:
-            print("Execution time: %f seconds" % (time()-start_time))
         cleaned_out = np.nan_to_num(out)
         return cleaned_out
 
-    def pred_user_not_in_mat(self, courses_rated, ratings):
-        course_ratings_dict = {course_id: rating for course_id, rating in zip(courses_rated, ratings)}
-        print course_ratings_dict
+    def pred_one_user_not_in_mat(self, courses_rated, ratings):
         courses_rated = np.array(courses_rated)
         ratings = np.array(ratings)
         out = np.zeros(self.n_items)
-        for item_to_rate in range(self.n_items):
-            relevant_items = np.intersect1d(self.neighborhoods[item_to_rate],
-                                            courses_rated,
-                                            assume_unique=True) # assume_unique speeds up intersection op
-            relevant_ratings = np.array([float(course_ratings_dict[key]) for key in relevant_items])
-            sim_rel = self.item_sim_mat[item_to_rate, relevant_items]
-            rr = relevant_ratings * sim_rel
-            rr /= self.item_sim_mat[item_to_rate, relevant_items].sum()
-            try:
-                out[item_to_rate] = rr
-            except:
-                out[item_to_rate] = 0
+        sim_courses = np.array([])
+        for course in courses_rated:
+            sim_courses = np.append(sim_courses, self.neighborhoods[course])
+        sim_courses = np.unique(sim_courses)
+        for item in sim_courses:
+            index_of_courses = []
+            for i, course in enumerate(courses_rated):
+                if course in self.neighborhoods[item]:
+                    index_of_courses.append(np.where(self.neighbor_sim[item] == course)[0][0])
+            out[item] = ratings * self.neighbor_sim[item, index_of_courses] / \
+                        self.neighbor_sim[item, index_of_courses].sum()
         cleaned_out = np.nan_to_num(out)
         return cleaned_out
 
