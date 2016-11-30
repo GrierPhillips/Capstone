@@ -378,9 +378,12 @@ def get_local_recs(user_recs, user_loc, n_courses=5):
                 except:
                     continue
             print type(course['Lattitude']), type(course['Longitude'])
-            d = haversine(user_loc[1], user_loc[0], float(course['Lattitude']), float(course['Longitude']))
-            if d < 100:
-                local_recs.append(rec)
+            try:
+                d = haversine(user_loc[1], user_loc[0], float(course['Lattitude']), float(course['Longitude']))
+                if d < 100:
+                    local_recs.append(rec)
+            except:
+                continue
     return local_recs
 
 
