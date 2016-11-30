@@ -14,6 +14,7 @@ from time import sleep
 
 app = Flask(__name__)
 app.debug = True
+app.use_evalex=False
 app.secret_key = os.environ['GOLFRECS_KEY']
 login_manager = LoginManager()
 login_manager.init_app(app)
