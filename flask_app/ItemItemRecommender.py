@@ -55,7 +55,7 @@ class ItemItemRecommender(object):
                                             assume_unique=True)  # assume_unique speeds up intersection op
             relevant_courses = [np.where(courses_rated == x) for x in relevant_items]
             print type(relevant_items), type(relevant_courses), self.item_sim_mat[course, relevant_items.sum()]
-            print float(ratings[relevant_courses]).dot(self.item_sim_mat[course, relevant_items]), self.item_sim_mat[course, relevant_items].sum()
+            # print float(ratings[relevant_courses]).dot(self.item_sim_mat[course, relevant_items]), self.item_sim_mat[course, relevant_items].sum()
             try:
                 out[course] = float(ratings[relevant_courses]).dot(self.item_sim_mat[course, relevant_items]) / \
                     self.item_sim_mat[course, relevant_items].sum()
