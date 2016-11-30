@@ -25,7 +25,7 @@ class ItemItemRecommender(object):
         self.neighbor_sim = np.zeros(self.n_items * self.neighborhood_size).reshape((self.n_items, self.neighborhood_size))
         for i in xrange(self.n_items):
             self.neighbor_sim[i] = self.item_sim_mat[i, self.neighborhoods[i]]
-        self.item_sim_mat = None
+        # self.item_sim_mat = None
 
     def pred_one_user(self, user_id):
         courses_rated = self.ratings_mat[user_id].nonzero()[1]
