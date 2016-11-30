@@ -57,6 +57,7 @@ class ItemItemRecommender(object):
             # print type(relevant_items), type(relevant_courses), self.item_sim_mat[course, relevant_items.sum()]
             # print float(ratings[relevant_courses]).dot(self.item_sim_mat[course, relevant_items]), self.item_sim_mat[course, relevant_items].sum()
             # try:
+            print course
             out[course] = ratings[relevant_courses].dot(self.item_sim_mat[course, relevant_items]) / \
                 self.item_sim_mat[course, relevant_items].sum()
             # except:
