@@ -10,6 +10,8 @@ from math import radians, cos, sin, asin, sqrt
 from decimal import Decimal
 from concurrent.futures import ThreadPoolExecutor
 from forms import RegistrationForm, LoginForm, UpdateProfileForm, ReviewForm, RecommendationForm, states
+import numpy as np
+
 
 
 app = Flask(__name__)
