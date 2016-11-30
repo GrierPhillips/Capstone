@@ -10,11 +10,12 @@ from math import radians, cos, sin, asin, sqrt
 from decimal import Decimal
 from concurrent.futures import ThreadPoolExecutor
 from forms import RegistrationForm, LoginForm, UpdateProfileForm, ReviewForm, RecommendationForm, states
-from time import sleep
+from werkzeug.debug import DebuggedApplication
 
 app = Flask(__name__)
 app.debug = True
 app.use_evalex=False
+app.wsgi_app = DebuggedApplication(app.wsgi_app, True)
 app.secret_key = os.environ['GOLFRECS_KEY']
 login_manager = LoginManager()
 login_manager.init_app(app)
