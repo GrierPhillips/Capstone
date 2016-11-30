@@ -321,7 +321,7 @@ def get_rex(name, location=None):
     else:
         site = geocoder.google(location).latlng
         site = [Decimal(str(item)) for item in site]
-        cities_table.update_item(Key={'State': location.split()[0], 'City': location.split()[1]}, UpdateExpression='SET Coords = :v', ExpressionAttributeValues={':v': site}})
+        cities_table.update_item(Key={'State': location.split()[0], 'City': location.split()[1]}, UpdateExpression='SET Coords = :v', ExpressionAttributeValues={':v': site})
         loc = location
     user_id = user_item['User_Id']
     if user_id < model.ratings_mat.shape[0]:
