@@ -7,13 +7,13 @@ from time import time
 
 class ItemItemRecommender(object):
 
-    def __init__(self, neighborhood_size):
+    def __init__(self, neighborhood_size, ratings_mat):
         self.neighborhood_size = neighborhood_size
-
-    def fit(self, ratings_mat):
         self.ratings_mat = ratings_mat
         self.n_users = ratings_mat.shape[0]
         self.n_items = ratings_mat.shape[1]
+
+    def fit(self):
         self.item_sim_mat = cosine_similarity(self.ratings_mat.T)
         self._set_neighborhoods()
 
