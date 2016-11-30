@@ -361,29 +361,30 @@ def haversine(lon1, lat1, lon2, lat2):
 
 def get_local_recs(user_recs, user_loc, n_courses=5):
     local_recs = []
-    while len(local_recs)< 5:
-        for rec in user_recs:
-            course = course_table.get_item(Key={'Course_Id': rec})['Item']
-            if not course['Lattitude']:
-                try:
-                    site = geocoder.google(course['City'] + ', ' + course['State']).latlng
-                    if len(site) == 0:
-                        site = geocoder.google(course['State']).latlng
-                    site = [Decimal(str(item)) for item in site]
-                    print site
-                    course_table.update_item(Key={"Course_Id": rec},
-                                             UpdateExpression='SET Lattitude = :lat, Longitude = :lng',
-                                             ExpressionAttributeValues={':lat': site[0], ':lng': site[1]})
-                    course = course_table.get_item(Key={'Course_Id': rec})['Item']
-                except:
-                    continue
-            print type(course['Lattitude']), type(course['Longitude'])
+    # while len(local_recs)< 5:
+    for rec in user_recs:
+        print 'Rec # ', rec
+        course = course_table.get_item(Key={'Course_Id': rec})['Item']
+        if not course['Lattitude']:
             try:
-                d = haversine(user_loc[1], user_loc[0], float(course['Lattitude']), float(course['Longitude']))
-                if d < 100:
-                    local_recs.append(rec)
+                site = geocoder.google(course['City'] + ', ' + course['State']).latlng
+                if len(site) == 0:
+                    site = geocoder.google(course['State']).latlng
+                site = [Decimal(str(item)) for item in site]
+                print site
+                course_table.update_item(Key={"Course_Id": rec},
+                                         UpdateExpression='SET Lattitude = :lat, Longitude = :lng',
+                                         ExpressionAttributeValues={':lat': site[0], ':lng': site[1]})
+                course = course_table.get_item(Key={'Course_Id': rec})['Item']
             except:
                 continue
+        print type(course['Lattitude']), type(course['Longitude'])
+        try:
+            d = haversine(user_loc[1], user_loc[0], float(course['Lattitude']), float(course['Longitude']))
+            if d < 100:
+                local_recs.append(rec)
+        except:
+            continue
     return local_recs
 
 
