@@ -63,6 +63,7 @@ def signup():
         state = request.form['state']
         if not cities_table.get_item(Key={'State': state, 'City': city})['Item'].get('Coords'):
             site = geocoder.google(city + ', ' + state).latlng
+            site = [Decimal(str(item)) for item in site]
             cities_table.update_item(Key={'State': state, 'City': city},
                                      UpdateExpression='SET Coords = :v',
                                      ExpressionAttributeValues={':v': site})
@@ -312,12 +313,15 @@ def recommend():
 
 def get_rex(name, location=None):
     user_item = user_table.get_item(Key={'Username': name})['Item']
-    if not location:
+    if location == None:
+        print 'no location entered'
         user_loc = cities_table.get_item(Key={'State': user_item['State'], 'City': user_item['City']})['Item']['Coords']
         loc = user_item['City'] + ', ' + user_item['State']
+        print loc
     else:
-        user_loc = geocoder.google(location).latlng
-        cities_table.update_item(Key={'State': location.split()})
+        site = geocoder.google(location).latlng
+        site = [Decimal(str(item)) for item in site]
+        cities_table.update_item(Key={'State': location.split()[0], 'City': location.split()[1]}, UpdateExpression='SET Coords = :v', ExpressionAttributeValues={':v': site}})
         loc = location
     user_id = user_item['User_Id']
     if user_id < model.ratings_mat.shape[0]:
