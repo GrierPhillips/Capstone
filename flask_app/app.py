@@ -294,21 +294,21 @@ def recommend():
         location = city + ', ' + state
         result = executor(get_rex, session['username'].lower(), location)
         recommendations, loc = result[0], result[1]
-        course_links = []
-        course_names = []
-        images = []
-        for rec in recommendations:
-            response = course_table.get_item(Key={'Course_Id': rec})['Item']
-            if not response.ge('Website'):
-                course_links.append(response['Course'])
-            else:
-                course_links.append(response['Website'])
-            course_names.append(response['Name'])
-            if not response.get('Images'):
-                images.append(None)
-            else:
-                images.append(response['Images'][0])
-        items = {'Names': course_names, 'Links': course_links, 'Images': images, 'Location': loc}
+    course_links = []
+    course_names = []
+    images = []
+    for rec in recommendations:
+        response = course_table.get_item(Key={'Course_Id': rec})['Item']
+        if not response.ge('Website'):
+            course_links.append(response['Course'])
+        else:
+            course_links.append(response['Website'])
+        course_names.append(response['Name'])
+        if not response.get('Images'):
+            images.append(None)
+        else:
+            images.append(response['Images'][0])
+    items = {'Names': course_names, 'Links': course_links, 'Images': images, 'Location': loc}
     return render_template('recommend.html', items=items, form=form, states=states, error=error)
 
 def get_rex(name, location=None):
@@ -343,7 +343,7 @@ def get_rex(name, location=None):
         # local_recs = get_local_recs(recs, user_loc, 5)
         # print 'local recs', local_recs
         # return local_recs, loc
-        return recs, loc
+        return recs[:5], loc
 
 def haversine(lon1, lat1, lon2, lat2):
     """
