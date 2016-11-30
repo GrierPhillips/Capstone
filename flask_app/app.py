@@ -301,7 +301,7 @@ def recommend():
     images = []
     for rec in recommendations:
         response = course_table.get_item(Key={'Course_Id': rec})['Item']
-        if not response.ge('Website'):
+        if not response.get('Website'):
             course_links.append(response['Course'])
         else:
             course_links.append(response['Website'])
