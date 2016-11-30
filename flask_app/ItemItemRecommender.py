@@ -54,11 +54,13 @@ class ItemItemRecommender(object):
         out = np.zeros(len(sim_courses))
         for item in sim_courses:
             index_of_courses = []
+            courses_in_neighborhood = []
             for i, course in enumerate(courses_rated):
                 if course in self.neighborhoods[item]:
                     index_of_courses.append(np.where(self.neighbor_sim[item] == course)[0][0])
-            print ratings, self.neighbor_sim[item, index_of_courses]
-            out[item] = ratings * self.neighbor_sim[item, index_of_courses] / \
+                    courses_in_neighborhood.append(i)
+            print ratings[courses_in_neighborhood], self.neighbor_sim[item, index_of_courses]
+            out[item] =  ratings[courses_in_neighborhood] * self.neighbor_sim[item, index_of_courses] / \
                         self.neighbor_sim[item, index_of_courses].sum()
         cleaned_out = np.nan_to_num(out)
         return cleaned_out, sim_courses
