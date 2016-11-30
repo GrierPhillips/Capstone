@@ -336,6 +336,7 @@ def recommend():
     return render_template('recommend.html', items=items, form=form, states=states, error=error)
 
 def get_rex(name, location=None):
+    print name
     loc = None
     try:
         user_item = user_table.get_item(Key={'Username': name})['Item']
@@ -343,7 +344,7 @@ def get_rex(name, location=None):
         user_id = users.index(name)
         user_item = user_table_orig.get_item(Key={'User_Id': user_id})['Item']
         recs = model.top_n_recs(user_id, model.n_items)
-        return recs[:5]
+        return recs[:5], loc
     if location == None:
         print 'no location entered'
         # user_loc = cities_table.get_item(Key={'State': user_item['State'], 'City': user_item['City']})['Item']['Coords']
