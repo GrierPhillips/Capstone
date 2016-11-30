@@ -58,7 +58,7 @@
         <div class='row'>
           <h3>Courses:</h3>
             {% for item in items['Names'] %}
-                <a href='{{ items["Links"][loop.index] }}'>{{ item }}</a>
+                <a href='{{ items["Links"][loop.index] }}'>{{ items['Links'][loop.index] }}</a>
                 <img src='{{ items["Images"][loop.index] }}'>
             {% endfor %}
 
