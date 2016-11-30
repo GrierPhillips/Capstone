@@ -58,7 +58,7 @@
         <div class='row'>
           <h3>Courses:</h3>
           {% for item in items['Names'] %}
-            {% if items['Images'][loop.index] == None %}
+            {% if not items['Images'][loop.index] %}
               <div class='row'>
                 <div class='col-sm-3'>
                   <a href='{{ items["Links"][loop.index] }}' class="btn btn-sm btn-outline">{{ items['Names'][loop.index] }}</a>
