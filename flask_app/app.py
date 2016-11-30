@@ -335,6 +335,7 @@ def get_rex(name, location=None):
         return local_recs, loc
     else:
         courses_rated = [courses.index(course) for course in user_item['Reviewed_Courses']]
+        courses_rated = np.array(courses_rated)
         print 'courses rated', courses_rated
         course_ratings = []
         for course in courses_rated:
@@ -342,6 +343,7 @@ def get_rex(name, location=None):
             response = review_table.get_item(Key={'Course': course, 'Username': name})
             rating = response['Item']['Rating']
             course_ratings.append(float(rating))
+        course_ratings = np.array(course_ratings)
         recs = model.top_n_recs_not_in_mat(courses_rated, course_ratings, model.n_items)
         # local_recs = get_local_recs(recs, user_loc, 5)
         # print 'local recs', local_recs
