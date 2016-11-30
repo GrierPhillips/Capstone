@@ -10,12 +10,10 @@ from math import radians, cos, sin, asin, sqrt
 from decimal import Decimal
 from concurrent.futures import ThreadPoolExecutor
 from forms import RegistrationForm, LoginForm, UpdateProfileForm, ReviewForm, RecommendationForm, states
-from werkzeug.debug import DebuggedApplication
+
 
 app = Flask(__name__)
 app.debug = True
-app.use_evalex=False
-app.wsgi_app = DebuggedApplication(app.wsgi_app, True)
 app.secret_key = os.environ['GOLFRECS_KEY']
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -315,6 +313,7 @@ def recommend():
 
 def get_rex(name, location=None):
     user_item = user_table.get_item(Key={'Username': name})['Item']
+    loc = None
     if location == None:
         print 'no location entered'
         user_loc = cities_table.get_item(Key={'State': user_item['State'], 'City': user_item['City']})['Item']['Coords']
