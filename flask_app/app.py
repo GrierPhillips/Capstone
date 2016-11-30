@@ -377,6 +377,7 @@ def get_local_recs(user_recs, user_loc, n_courses=5):
                     course = course_table.get_item(Key={'Course_Id': rec})['Item']
                 except:
                     continue
+            print type(course['Lattitude']), type(course['Longitude'])
             d = haversine(user_loc[1], user_loc[0], float(course['Lattitude']), float(course['Longitude']))
             if d < 100:
                 local_recs.append(rec)
