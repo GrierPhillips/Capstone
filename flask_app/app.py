@@ -12,8 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from forms import RegistrationForm, LoginForm, UpdateProfileForm, ReviewForm, RecommendationForm, states
 import numpy as np
 from scipy.sparse import vstack, lil_matrix
-
-
+from urlparse import urljoin
 
 
 app = Flask(__name__)
@@ -325,7 +324,7 @@ def recommend():
         if not response.get('Website'):
             course_links.append(response['Course'])
         else:
-            course_links.append(response['Website'])
+            course_links.append(urljoin('http://', response['Website']))
         course_names.append(response['Name'])
         if not response.get('Images'):
             images.append('localhost:5000/static/img/no_images.png')
