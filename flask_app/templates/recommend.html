@@ -58,16 +58,25 @@
         <div class='row'>
           <h3>Courses:</h3>
           {% for item in items['Names'] %}
-          <div class='row'>
-            <div class='col-sm-3'>
-              <img src='{{ items["Images"][loop.index] }}' style="max-height: 100px; max-width: 100px;" />
-            </div>
-          </div>
-          <div class='row'>
-            <div class='col-sm-3'>
-              <a href='{{ items["Links"][loop.index] }}' class="btn btn-sm btn-outline">{{ items['Names'][loop.index] }}</a>
-            </div>
-          </div>
+            {% if item['Images'][loop.index] == None %}
+              <div class='row'>
+                <div class='col-sm-3'>
+                  <a href='{{ items["Links"][loop.index] }}' class="btn btn-sm btn-outline">{{ items['Names'][loop.index] }}</a>
+                </div>
+              </div>
+            {% else %}
+              <div class='row'>
+                <div class='col-sm-3'>
+                  <img src='{{ items["Images"][loop.index] }}' style="max-height: 200px; max-width: 200px;" />
+                </div>
+              </div>
+              <div class='row'>
+                <div class='col-sm-3'>
+                  <a href='{{ items["Links"][loop.index] }}' class="btn btn-sm btn-outline">{{ items['Names'][loop.index] }}</a>
+                </div>
+              </div>
+              <br>
+            {% endif %}
           {% endfor %}
         </div>
 
