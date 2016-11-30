@@ -80,7 +80,7 @@ class ItemItemRecommender(object):
         return unrated_courses_sorted_rating[-n:]
 
     def top_n_recs_not_in_mat(self, courses_rated, ratings, n):
-        pred_ratings, courses = self.pred_user_not_in_mat(courses_rated, ratings)
+        pred_ratings, courses = self.pred_one_user_not_in_mat(courses_rated, ratings)
         sorted_ratings = np.argsort(pred_ratings)
         courses_by_rating = courses[sorted_ratings]
         unrated_courses_sorted_rating = [item for item in courses_by_rating
