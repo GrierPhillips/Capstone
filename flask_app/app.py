@@ -311,6 +311,7 @@ def recommend():
         else:
             images.append(response['Images'][0])
     items = {'Names': course_names, 'Links': course_links, 'Images': images, 'Location': loc}
+    print items
     return render_template('recommend.html', items=items, form=form, states=states, error=error)
 
 def get_rex(name, location=None):
