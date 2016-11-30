@@ -28,21 +28,18 @@ class ItemItemRecommender(object):
         # self.item_sim_mat = None
 
     def pred_one_user(self, user_id):
-        courses_rated = self.ratings_mat[user_id].nonzero()[1]
+        items_rated_by_this_user = self.ratings_mat[user_id].nonzero()[1]
+        # Just initializing so we have somewhere to put rating preds
         out = np.zeros(self.n_items)
-        sim_courses = np.array([])
-        for course in courses_rated:
-            sim_courses = np.append(sim_courses, self.neighborhoods[course])
-        sim_courses = np.unique(sim_courses)
-        for i, course in enumerate(sim_courses):
-            relevant_items = np.intersect1d(self.neighborhoods[course],
-                                            courses_rated,
+        for item_to_rate in range(self.n_items):
+            relevant_items = np.intersect1d(self.neighborhoods[item_to_rate],
+                                            items_rated_by_this_user,
                                             assume_unique=True)  # assume_unique speeds up intersection op
-            out[i] = self.ratings_mat[user_id, relevant_items] * \
-                self.neighbor_sim[course, relevant_items] / \
-                self.neighbor_sim[course, relevant_items].sum()
+            out[item_to_rate] = self.ratings_mat[user_id, relevant_items] * \
+                self.item_sim_mat[item_to_rate, relevant_items] / \
+                self.item_sim_mat[item_to_rate, relevant_items].sum()
         cleaned_out = np.nan_to_num(out)
-        return cleaned_out, sim_courses
+        return cleaned_out
 
     def pred_one_user_not_in_mat(self, courses_rated, ratings):
         courses_rated = np.array(courses_rated)
@@ -57,7 +54,7 @@ class ItemItemRecommender(object):
             # print type(relevant_items), type(relevant_courses), self.item_sim_mat[course, relevant_items.sum()]
             # print float(ratings[relevant_courses]).dot(self.item_sim_mat[course, relevant_items]), self.item_sim_mat[course, relevant_items].sum()
             # try:
-            print course
+            print relevant_courses
             out[course] = ratings[relevant_courses].dot(self.item_sim_mat[course, relevant_items]) / \
                 self.item_sim_mat[course, relevant_items].sum()
             # except:
