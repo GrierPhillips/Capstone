@@ -346,6 +346,7 @@ def get_rex(name, location=None):
         # local_recs = get_local_recs(recs, user_loc, 5)
         # print 'local recs', local_recs
         # return local_recs, loc
+        print recs
         return recs[:5], loc
 
 def haversine(lon1, lat1, lon2, lat2):
