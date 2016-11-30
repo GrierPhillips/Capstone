@@ -54,6 +54,7 @@ class ItemItemRecommender(object):
                                             courses_rated,
                                             assume_unique=True)  # assume_unique speeds up intersection op
             relevant_courses = [np.where(courses_rated == x) for x in relevant_items]
+            print relevant_items, relevant_courses
             out[course] = ratings[relevant_courses] * \
                 self.item_sim_mat[course, relevant_items] / \
                 self.item_sim_mat[course, relevant_items].sum()
