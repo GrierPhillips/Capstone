@@ -40,6 +40,7 @@ class ItemItemRecommender(object):
             relevant_items = np.intersect1d(self.neighborhoods[course],
                                             courses_rated,
                                             assume_unique=True)  # assume_unique speeds up intersection op
+            relevant_items = [np.where(courses_rated == x) for x in relevant_items]
             out[i] = self.ratings_mat[user_id, relevant_items] * \
                 self.neighbor_sim[course, relevant_items] / \
                 self.neighbor_sim[course, relevant_items].sum()
