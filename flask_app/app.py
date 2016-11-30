@@ -13,7 +13,7 @@ from forms import RegistrationForm, LoginForm, UpdateProfileForm, ReviewForm, Re
 
 
 app = Flask(__name__)
-app.debug = True
+# app.debug = True
 app.secret_key = os.environ['GOLFRECS_KEY']
 login_manager = LoginManager()
 login_manager.init_app(app)
