@@ -26,6 +26,7 @@ user_table = dynamo.Table('GR_Users')
 review_table = dynamo.Table('GR_Reviews')
 course_table = dynamo.Table('Courses')
 cities_table = dynamo.Table('Cities')
+user_table_orig = dynamo.Table('Users')
 with open('model.pkl', 'r') as f:
     model = pickle.load(f)
 model.fit()
@@ -335,11 +336,17 @@ def recommend():
     return render_template('recommend.html', items=items, form=form, states=states, error=error)
 
 def get_rex(name, location=None):
-    user_item = user_table.get_item(Key={'Username': name})['Item']
     loc = None
+    try:
+        user_item = user_table.get_item(Key={'Username': name})['Item']
+    except:
+        user_id = users.index(name)
+        user_item = user_table_orig.get_item(Key={'User_Id': user_id})['Item']
+        recs = model.top_n_recs(user_id, model.n_items)
+        return recs[:5]
     if location == None:
         print 'no location entered'
-        user_loc = cities_table.get_item(Key={'State': user_item['State'], 'City': user_item['City']})['Item']['Coords']
+        # user_loc = cities_table.get_item(Key={'State': user_item['State'], 'City': user_item['City']})['Item']['Coords']
         loc = user_item['City'] + ', ' + user_item['State']
         print loc
     else:
@@ -348,28 +355,22 @@ def get_rex(name, location=None):
         cities_table.update_item(Key={'State': location.split()[0], 'City': location.split()[1]}, UpdateExpression='SET Coords = :v', ExpressionAttributeValues={':v': site})
         loc = location
     user_id = user_item['User_Id']
-    if user_id < model.ratings_mat.shape[0]:
-        recs = model.top_n_recs(user_id, model.n_items)
-        local_recs = get_local_recs(recs, user_loc, 5)
-        print local_recs
-        return local_recs, loc
-    else:
-        courses_rated = [courses.index(course) for course in user_item['Reviewed_Courses']]
-        courses_rated = np.array(courses_rated)
-        print 'courses rated', courses_rated
-        course_ratings = []
-        for course in courses_rated:
-            course = courses[course]
-            response = review_table.get_item(Key={'Course': course, 'Username': name})
-            rating = response['Item']['Rating']
-            course_ratings.append(float(rating))
-        course_ratings = np.array(course_ratings)
-        recs = model.top_n_recs_not_in_mat(courses_rated, course_ratings, model.n_items)
-        # local_recs = get_local_recs(recs, user_loc, 5)
-        # print 'local recs', local_recs
-        # return local_recs, loc
-        print recs[:5]
-        return recs[:5], loc
+    courses_rated = [courses.index(course) for course in user_item['Reviewed_Courses']]
+    courses_rated = np.array(courses_rated)
+    print 'courses rated', courses_rated
+    course_ratings = []
+    for course in courses_rated:
+        course = courses[course]
+        response = review_table.get_item(Key={'Course': course, 'Username': name})
+        rating = response['Item']['Rating']
+        course_ratings.append(float(rating))
+    course_ratings = np.array(course_ratings)
+    recs = model.top_n_recs_not_in_mat(courses_rated, course_ratings, model.n_items)
+    # local_recs = get_local_recs(recs, user_loc, 5)
+    # print 'local recs', local_recs
+    # return local_recs, loc
+    print recs[:5]
+    return recs[:5], loc
 
 def haversine(lon1, lat1, lon2, lat2):
     """
