@@ -13,6 +13,8 @@ class ItemItemRecommender(object):
         self.ratings_mat = ratings_mat
         self.n_users = ratings_mat.shape[0]
         self.n_items = ratings_mat.shape[1]
+        self.nmf = NMF(n_components=2)
+        self.W = self.nmf.fit_transform(ratings_mat)
         self.neighbor_sim = None
 
     def fit(self):
