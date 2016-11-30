@@ -29,7 +29,9 @@ cities_table = dynamo.Table('Cities')
 user_table_orig = dynamo.Table('Users')
 with open('model.pkl', 'r') as f:
     model = pickle.load(f)
+print model.ratings_mat.shape
 model.fit()
+
 with open('courses.pkl', 'r') as f:
     courses = pickle.load(f)
 with open('users.pkl', 'r') as f:
