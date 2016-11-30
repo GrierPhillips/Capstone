@@ -59,7 +59,7 @@ class ItemItemRecommender(object):
                 if course in self.neighborhoods[item]:
                     index_of_courses.append(np.where(self.neighbor_sim[item] == course)[0][0])
                     courses_in_neighborhood.append(i)
-            print ratings[courses_in_neighborhood], self.neighbor_sim[item, index_of_courses]
+            print ratings[courses_in_neighborhood], self.neighbor_sim[item, index_of_courses], self.neighbor_sim[item, index_of_courses].sum()
             out[item] =  ratings[courses_in_neighborhood] * self.neighbor_sim[item, index_of_courses] / self.neighbor_sim[item, index_of_courses].sum()
         cleaned_out = np.nan_to_num(out)
         return cleaned_out, sim_courses
@@ -82,6 +82,7 @@ class ItemItemRecommender(object):
         return unrated_courses_sorted_rating[-n:]
 
     def top_n_recs_not_in_mat(self, courses_rated, ratings, n):
+        print 'courses rated', courses_rated
         pred_ratings, courses = self.pred_one_user_not_in_mat(courses_rated, ratings)
         sorted_ratings = np.argsort(pred_ratings)
         courses_by_rating = courses[sorted_ratings]
