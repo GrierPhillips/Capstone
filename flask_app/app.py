@@ -36,9 +36,15 @@ future = None
 def index():
     if session.get('username'):
         global future
-        if future.running():
-            print 'get_rex still running'
-        else:
+        start = True
+        try:
+            if not future.done():
+                print 'get_rex still running'
+                start = False
+        except:
+            print 'get_rex not started'
+            start = False
+        if start:
             print 'running get_rex'
             future = executor.submit(get_rex, session['username'].lower())
     return render_template('index.html')
