@@ -47,7 +47,7 @@ class ItemItemRecommender(object):
                 out[item_to_rate] = ratings[relevant_items_index].dot(self.item_sim_mat[item_to_rate, relevant_items]) / self.item_sim_mat[item_to_rate, relevant_items].sum()
             except:
                 # print ratings[relevant_items_index].dot(self.item_sim_mat[item_to_rate, relevant_items]) / self.item_sim_mat[item_to_rate, relevant_items].sum()
-                print ratings[relevant_items_index].dot(self.item_sim_mat[item_to_rate, relevant_items]), self.item_sim_mat[item_to_rate, relevant_items].sum()
+                # print ratings[relevant_items_index].dot(self.item_sim_mat[item_to_rate, relevant_items]), self.item_sim_mat[item_to_rate, relevant_items].sum()
                 print ratings[relevant_items_index], self.item_sim_mat[item_to_rate, relevant_items]
         cleaned_out = np.nan_to_num(out)
         return cleaned_out
