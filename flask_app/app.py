@@ -347,7 +347,7 @@ def get_rex(name, location=None):
         user_id = users.index(name)
         print user_id
         user_item = user_table_orig.get_item(Key={'User_Id': user_id})['Item']
-        recs = model.top_n_recs(user_id, model.n_items)
+        recs = model.top_n_recs(user_id, 10)
         return recs[:5], loc
     if location == None:
         print 'no location entered'
