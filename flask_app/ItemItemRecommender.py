@@ -3,67 +3,47 @@ import pandas as pd
 from scipy import sparse
 from sklearn.metrics.pairwise import cosine_similarity
 from time import time
-from sklearn.decomposition import NMF
 
 
 class ItemItemRecommender(object):
 
-    def __init__(self, neighborhood_size, ratings_mat):
+    def __init__(self, neighborhood_size):
         self.neighborhood_size = neighborhood_size
+
+    def fit(self, ratings_mat):
         self.ratings_mat = ratings_mat
         self.n_users = ratings_mat.shape[0]
         self.n_items = ratings_mat.shape[1]
-        self.nmf = NMF(n_components=2)
-        self.W = self.nmf.fit_transform(ratings_mat)
-        self.neighbor_sim = None
-
-    def fit(self):
         self.item_sim_mat = cosine_similarity(self.ratings_mat.T)
         self._set_neighborhoods()
 
     def _set_neighborhoods(self):
         least_to_most_sim_indexes = np.argsort(self.item_sim_mat, 1)
         self.neighborhoods = least_to_most_sim_indexes[:, -self.neighborhood_size:]
-        self.neighbor_sim = np.zeros(self.n_items * self.neighborhood_size).reshape((self.n_items, self.neighborhood_size))
-        for i in xrange(self.n_items):
-            self.neighbor_sim[i] = self.item_sim_mat[i, self.neighborhoods[i]]
-        self.item_sim_mat = None
 
     def pred_one_user(self, user_id):
-        courses_rated = self.ratings_mat[user_id].nonzero()[1]
+        items_rated_by_this_user = self.ratings_mat[user_id].nonzero()[1]
+        # Just initializing so we have somewhere to put rating preds
         out = np.zeros(self.n_items)
-        sim_courses = np.array([])
-        for course in courses_rated:
-            sim_courses = np.append(sim_courses, self.neighborhoods[course])
-        sim_courses = np.unique(sim_courses)
-        for i, course in enumerate(sim_courses):
-            relevant_items = np.intersect1d(self.neighborhoods[course],
-                                            courses_rated,
+        for item_to_rate in range(self.n_items):
+            relevant_items = np.intersect1d(self.neighborhoods[item_to_rate],
+                                            items_rated_by_this_user,
                                             assume_unique=True)  # assume_unique speeds up intersection op
-            relevant_items = [np.where(courses_rated == x) for x in relevant_items]
-            out[i] = self.ratings_mat[user_id, relevant_items] * \
-                self.neighbor_sim[course, relevant_items] / \
-                self.neighbor_sim[course, relevant_items].sum()
+            out[item_to_rate] = self.ratings_mat[user_id, relevant_items] * \
+                self.item_sim_mat[item_to_rate, relevant_items] / \
+                self.item_sim_mat[item_to_rate, relevant_items].sum()
         cleaned_out = np.nan_to_num(out)
-        return cleaned_out, sim_courses
+        return cleaned_out
 
     def pred_one_user_not_in_mat(self, courses_rated, ratings):
-        courses_rated = np.array(courses_rated)
-        ratings = np.array(ratings)
-        sim_courses = np.array([])
-        for course in courses_rated:
-            sim_courses = np.append(sim_courses, self.neighborhoods[course])
-        sim_courses = np.unique(sim_courses)
-        out = np.zeros(len(sim_courses))
-        for item in sim_courses:
-            index_of_courses = []
-            for i, course in enumerate(courses_rated):
-                if course in self.neighborhoods[item]:
-                    index_of_courses.append(np.where(self.neighbor_sim[item] == course)[0][0])
-            out[item] = ratings * self.neighbor_sim[item, index_of_courses] / \
-                        self.neighbor_sim[item, index_of_courses].sum()
+        # Just initializing so we have somewhere to put rating preds
+        out = np.zeros(self.n_items)
+        for item_to_rate in range(self.n_items):
+            relevant_items = np.intersect1d(self.neighborhoods[item_to_rate],courses_rated,assume_unique=True)  # assume_unique speeds up intersection op
+            relevant_items_index = [np.where(courses_rated == x) for x in relevant_items]
+            out[item_to_rate] = ratings[relevant_items_index] * self.item_sim_mat[item_to_rate, relevant_items] / self.item_sim_mat[item_to_rate, relevant_items].sum()
         cleaned_out = np.nan_to_num(out)
-        return cleaned_out, sim_courses
+        return cleaned_out
 
     def pred_all_users(self, report_run_time=False):
         start_time = time()
@@ -74,18 +54,29 @@ class ItemItemRecommender(object):
         return np.array(all_ratings)
 
     def top_n_recs(self, user_id, n):
-        pred_ratings, courses = self.pred_one_user(user_id)
-        sorted_ratings = np.argsort(pred_ratings)
-        courses_by_rating = courses[sorted_ratings]
-        courses_rated = self.ratings_mat[user_id].nonzero()[1]
-        unrated_courses_sorted_rating = [item for item in courses_by_rating
-                                        if item not in courses_rated]
-        return unrated_courses_sorted_rating[-n:]
+        pred_ratings = self.pred_one_user(user_id)
+        item_index_sorted_by_pred_rating = list(np.argsort(pred_ratings))
+        items_rated_by_this_user = self.ratings_mat[user_id].nonzero()[1]
+        unrated_items_by_pred_rating = [item for item in item_index_sorted_by_pred_rating
+                                        if item not in items_rated_by_this_user]
+        return unrated_items_by_pred_rating[-n:]
 
     def top_n_recs_not_in_mat(self, courses_rated, ratings, n):
-        pred_ratings, courses = self.pred_user_not_in_mat(courses_rated, ratings)
-        sorted_ratings = np.argsort(pred_ratings)
-        courses_by_rating = courses[sorted_ratings]
-        unrated_courses_sorted_rating = [item for item in courses_by_rating
-                                        if item not in courses_rated]
-        return unrated_courses_sorted_rating[-n:]
+        pred_ratings = self.pred_one_user_not_in_mat(courses_rated, ratings)
+        item_index_sorted_by_pred_rating = list(np.argsort(pred_ratings))
+        items_rated_by_this_user = ratings
+        unrated_items_by_pred_rating = [item for item in item_index_sorted_by_pred_rating
+                                        if item not in items_rated_by_this_user]
+        return unrated_items_by_pred_rating[-n:]
+
+
+def get_ratings_data():
+    ratings_contents = pd.read_table("data/u.data",
+                                     names=["user", "movie", "rating", "timestamp"])
+    highest_user_id = ratings_contents.user.max()
+    highest_movie_id = ratings_contents.movie.max()
+    ratings_as_mat = sparse.lil_matrix((highest_user_id, highest_movie_id))
+    for _, row in ratings_contents.iterrows():
+            # subtract 1 from id's due to match 0 indexing
+        ratings_as_mat[row.user-1, row.movie-1] = row.rating
+    return ratings_contents, ratings_as_mat

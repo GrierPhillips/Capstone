@@ -341,7 +341,7 @@ def get_rex(name, location=None):
             course = courses[course]
             response = review_table.get_item(Key={'Course': course, 'Username': name})
             rating = response['Item']['Rating']
-            course_ratings.append(Decimal(rating))
+            course_ratings.append(float(rating))
         recs = model.top_n_recs_not_in_mat(courses_rated, course_ratings, model.n_items)
         # local_recs = get_local_recs(recs, user_loc, 5)
         # print 'local recs', local_recs
