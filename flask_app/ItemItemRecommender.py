@@ -72,13 +72,12 @@ class ItemItemRecommender(object):
         return np.array(all_ratings)
 
     def top_n_recs(self, user_id, n):
-        pred_ratings, courses = self.pred_one_user(user_id)
-        sorted_ratings = np.argsort(pred_ratings)
-        courses_by_rating = courses[sorted_ratings]
-        courses_rated = self.ratings_mat[user_id].nonzero()[1]
-        unrated_courses_sorted_rating = [item for item in courses_by_rating
-                                        if item not in courses_rated]
-        return unrated_courses_sorted_rating[-n:]
+        pred_ratings = self.pred_one_user(user_id)
+        item_index_sorted_by_pred_rating = list(np.argsort(pred_ratings))
+        items_rated_by_this_user = self.ratings_mat[user_id].nonzero()[1]
+        unrated_items_by_pred_rating = [item for item in item_index_sorted_by_pred_rating
+                                        if item not in items_rated_by_this_user]
+        return unrated_items_by_pred_rating[-n:]
 
     def top_n_recs_not_in_mat(self, courses_rated, ratings, n):
         print 'courses rated', courses_rated
