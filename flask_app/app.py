@@ -11,6 +11,8 @@ from decimal import Decimal
 from concurrent.futures import ThreadPoolExecutor
 from forms import RegistrationForm, LoginForm, UpdateProfileForm, ReviewForm, RecommendationForm, states
 import numpy as np
+from scipy.sparse import vstack, lil_matrix
+
 
 
 
@@ -47,7 +49,7 @@ def index():
             print 'get_rex not started'
         if start:
             print 'running get_rex'
-            future = executor.submit(get_rex, session['username'].lower())
+            future = executor.submit(get_rex, 'GrrP')
     return render_template('index.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -83,13 +85,22 @@ def signup():
     return render_template('signup.html', form=form, error=error)
 
 def do_signup(user_item):
-    users.append(user_item['Username'])
-    user_item['User_Id'] = users.index(user_item['Username'])
-    with open('../users.pkl', 'w') as f:
-        pickle.dump(users, f)
     query = user_table.query(KeyConditionExpression=Key('Username').eq(user_item['Username']))
     if query['Count'] == 0:
         user_table.put_item(Item=user_item)
+        users.append(user_item['Username'])
+        user_item['User_Id'] = users.index(user_item['Username'])
+        with open('users.pkl', 'w') as f:
+            pickle.dump(users, f)
+        with open('../ratings_mat.pkl','r') as f:
+            rats = pickle.load(f)
+        user_mat = np.zeros(33134).reshape((1,33134))
+        user_mat = lil_matrix(user_mat)
+        rats = vstack(rats, user_mat).tolil()
+        model.ratings_mat = rats
+        save_ratings_mat(model)
+        global result
+        executor.submit(model.fit)
         return True, None
     else:
         if query['Items'][0]['Username'] == user_item['Username']:
@@ -223,6 +234,11 @@ def review():
         error = form.errors.values()[0][0]
     return render_template('review.html', form=form, states=states)
 
+def save_ratings_mat(model):
+    rats = model.ratings_mat
+    with open('ratings_mat.pkl', 'w') as f:
+        pickle.dump(rats, f)
+
 def do_review(review_item):
     review_table.put_item(Item=review_item)
     response = user_table.get_item(Key={'Username': review_item['Username']})
@@ -232,6 +248,9 @@ def do_review(review_item):
             error = 'You have already reviewed this course'
             return False, error
         else:
+            course_id = courses.index(review_item['Course'])
+            model.ratings_mat[review_item['User_Id'], course_id] = review_item['Rating']
+            save_ratings_mat(model)
             user_table.update_item(
                 Key={
                     'Username': review_item['Username']
