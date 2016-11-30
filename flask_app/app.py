@@ -366,7 +366,8 @@ def get_local_recs(user_recs, user_loc, n_courses=5):
             course = course_table.get_item(Key={'Course_Id': rec})['Item']
             if not course['Lattitude']:
                 site = geocoder.google(course['City'] + ', ' + course['State']).latlng
-                print course['City'] + ', ' + course['State']
+                if len(site) == 0:
+                    site = geocoder.google(course['State']).latlng
                 site = [Decimal(str(item)) for item in site]
                 print site
                 course_table.update_item(Key={"Course_Id": rec},
