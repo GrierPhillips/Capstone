@@ -32,6 +32,9 @@ recommender.pkl
 ###############
 boto.cfg
 
+
+.mov
+
 # OS generated files #
 ######################
 .DS_Store
