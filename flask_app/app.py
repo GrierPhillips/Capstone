@@ -51,7 +51,7 @@ def index():
             print 'get_rex not started'
         if start:
             print 'running get_rex'
-            future = executor.submit(get_rex, session['username'].lower())
+            future = executor.submit(get_rex, 'GrrP')
     return render_template('index.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -87,7 +87,7 @@ def signup():
     return render_template('signup.html', form=form, error=error)
 
 def make_user_row(model):
-    user_mat = np.zeros(33134).reshape((1,33134))
+    user_mat = np.zeros(33134).reshape(1,33134)
     user_mat = lil_matrix(user_mat)
     model.ratings_mat = vstack(model.ratings_mat, user_mat).tolil()
 
@@ -382,8 +382,8 @@ def get_rex(name, location=None):
     # local_recs = get_local_recs(recs, user_loc, 5)
     # print 'local recs', local_recs
     # return local_recs, loc
-    print recs[:5]
-    return recs[:5], loc
+    print recs[:-5]
+    return recs[:-5], loc
 
 def haversine(lon1, lat1, lon2, lat2):
     """
