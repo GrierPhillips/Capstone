@@ -86,6 +86,11 @@ def signup():
         error = form.errors.values()[0][0]
     return render_template('signup.html', form=form, error=error)
 
+def make_user_row(model):
+    user_mat = np.zeros(33134).reshape((1,33134))
+    user_mat = lil_matrix(user_mat)
+    model.ratings_mat = vstack(model.ratings_mat, user_mat).tolil()
+
 def do_signup(user_item):
     query = user_table.query(KeyConditionExpression=Key('Username').eq(user_item['Username']))
     if query['Count'] == 0:
@@ -94,12 +99,7 @@ def do_signup(user_item):
         user_item['User_Id'] = users.index(user_item['Username'])
         with open('users.pkl', 'w') as f:
             pickle.dump(users, f)
-        with open('../ratings_mat.pkl','r') as f:
-            rats = pickle.load(f)
-        user_mat = np.zeros(33134).reshape((1,33134))
-        user_mat = lil_matrix(user_mat)
-        rats = vstack(rats, user_mat).tolil()
-        model.ratings_mat = rats
+        make_user_row(model)
         save_ratings_mat(model)
         global result
         executor.submit(model.fit)
@@ -154,13 +154,21 @@ def account():
 def get_user(name):
     user_query = user_table.get_item(Key={'Username': name})
     user_item = user_query['Item']
+    user_id = user_item['User_Id']
+    try:
+        user_ratings = model.ratings_mat[user_id]
+    except:
+        make_user_row(model)
     reviews = None
     if 'Reviewed_Courses' not in user_item.keys():
         return user_item, reviews
     else:
         reviews = []
         for course in user_item['Reviewed_Courses'][:-11:-1]:
-            reviews.append(review_table.get_item(Key={'Course': course, 'Username': name})['Item'])
+            review_item = review_table.get_item(Key={'Course': course, 'Username': name})['Item']
+            reviews.append(review_item)
+            if model.ratings_mat[user_id, courses.index(course)] < 1:
+                model.ratings_mat[user_id, courses.index(course)] = float(review_item['Rating'])
             print reviews
             # reviews[-1]['Course'] = course_table.get_item()
     return user_item, reviews
