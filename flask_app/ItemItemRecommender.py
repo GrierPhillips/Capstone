@@ -76,15 +76,3 @@ class ItemItemRecommender(object):
         unrated_items_by_pred_rating = [item for item in item_index_sorted_by_pred_rating
                                         if item not in items_rated_by_this_user]
         return unrated_items_by_pred_rating[-n:]
-
-
-def get_ratings_data():
-    ratings_contents = pd.read_table("data/u.data",
-                                     names=["user", "movie", "rating", "timestamp"])
-    highest_user_id = ratings_contents.user.max()
-    highest_movie_id = ratings_contents.movie.max()
-    ratings_as_mat = sparse.lil_matrix((highest_user_id, highest_movie_id))
-    for _, row in ratings_contents.iterrows():
-            # subtract 1 from id's due to match 0 indexing
-        ratings_as_mat[row.user-1, row.movie-1] = row.rating
-    return ratings_contents, ratings_as_mat

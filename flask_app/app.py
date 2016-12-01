@@ -89,7 +89,7 @@ def signup():
 def make_user_row(model):
     user_mat = np.zeros(33134).reshape(1,33134)
     user_mat = lil_matrix(user_mat)
-    model.ratings_mat = vstack(model.ratings_mat, user_mat).tolil()
+    model.ratings_mat = vstack([model.ratings_mat, user_mat]).tolil()
 
 def do_signup(user_item):
     query = user_table.query(KeyConditionExpression=Key('Username').eq(user_item['Username']))
@@ -355,8 +355,8 @@ def get_rex(name, location=None):
         user_id = users.index(name)
         print user_id
         user_item = user_table_orig.get_item(Key={'User_Id': user_id})['Item']
-        recs = model.top_n_recs(user_id, 10)
-        return recs[:5], loc
+        recs = model.top_n_recs(user_id, model.n_items)
+        return recs[::-1], loc
     if location == None:
         print 'no location entered'
         # user_loc = cities_table.get_item(Key={'State': user_item['State'], 'City': user_item['City']})['Item']['Coords']
@@ -383,7 +383,7 @@ def get_rex(name, location=None):
     # print 'local recs', local_recs
     # return local_recs, loc
     print recs[:-5]
-    return recs[:-5], loc
+    return recs[:-5:-1], loc
 
 def haversine(lon1, lat1, lon2, lat2):
     """
