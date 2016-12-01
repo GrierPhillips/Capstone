@@ -51,7 +51,7 @@ def index():
             print 'get_rex not started'
         if start:
             print 'running get_rex'
-            future = executor.submit(get_rex, 'GrrP')
+            future = executor.submit(get_rex, session['username'].lower())
     return render_template('index.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
