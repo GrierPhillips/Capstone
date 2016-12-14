@@ -13,11 +13,14 @@ from forms import RegistrationForm, LoginForm, UpdateProfileForm, ReviewForm, Re
 import numpy as np
 from scipy.sparse import vstack, lil_matrix
 from urlparse import urljoin
+import yaml
 
 
 app = Flask(__name__)
 # app.debug = True
-app.secret_key = os.environ['GOLFRECS_KEY']
+with open('secrets.yaml', 'r') as f:
+    secrets = yaml.load(f)
+app.secret_key = secrets['GOLFRECS_KEY']
 login_manager = LoginManager()
 login_manager.init_app(app)
 executor = ThreadPoolExecutor(max_workers=2)
@@ -51,7 +54,7 @@ def index():
             print 'get_rex not started'
         if start:
             print 'running get_rex'
-            future = executor.submit(get_rex, 'GrrP')
+            future = executor.submit(get_rex, session['username'].lower())
     return render_template('index.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -338,7 +341,7 @@ def recommend():
             course_links.append(urljoin('http://', response['Website']))
         course_names.append(response['Name'])
         if not response.get('Images'):
-            images.append('localhost:5000/static/img/no_images.png')
+            images.append('/static/img/no_images.png')
         else:
             images.append(response['Images'][0])
     items = {'Names': course_names, 'Links': course_links, 'Images': images, 'Location': loc}
@@ -356,7 +359,7 @@ def get_rex(name, location=None):
         print user_id
         user_item = user_table_orig.get_item(Key={'User_Id': user_id})['Item']
         recs = model.top_n_recs(user_id, model.n_items)
-        return recs[::-1], loc
+        return recs[:-6:-1], loc
     if location == None:
         print 'no location entered'
         # user_loc = cities_table.get_item(Key={'State': user_item['State'], 'City': user_item['City']})['Item']['Coords']
@@ -383,7 +386,7 @@ def get_rex(name, location=None):
     # print 'local recs', local_recs
     # return local_recs, loc
     print recs[:-5]
-    return recs[:-5:-1], loc
+    return recs[:-6:-1], loc
 
 def haversine(lon1, lat1, lon2, lat2):
     """
