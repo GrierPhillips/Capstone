@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from scipy import sparse
+import scipy.sparse as ss
 from sklearn.metrics.pairwise import cosine_similarity
 from time import time
 
@@ -9,7 +9,7 @@ class ItemItemRecommender(object):
 
     def __init__(self, neighborhood_size, ratings_mat):
         self.neighborhood_size = neighborhood_size
-        self.ratings_mat = ratings_mat
+        self.ratings_mat = ss.csr_matrix(ratings_mat)
         self.n_users = ratings_mat.shape[0]
         self.n_items = ratings_mat.shape[1]
 
@@ -19,6 +19,7 @@ class ItemItemRecommender(object):
 
     def _set_neighborhoods(self):
         least_to_most_sim_indexes = np.argsort(self.item_sim_mat, 1)
+        self.item_sim_mat = ss.csr_matrix(self.item_sim_mat)
         self.neighborhoods = least_to_most_sim_indexes[:, -self.neighborhood_size:]
 
     def pred_one_user(self, user_id):
@@ -29,9 +30,15 @@ class ItemItemRecommender(object):
             relevant_items = np.intersect1d(self.neighborhoods[item_to_rate],
                                             items_rated_by_this_user,
                                             assume_unique=True)  # assume_unique speeds up intersection op
-            out[item_to_rate] = self.ratings_mat[user_id, relevant_items] * \
-                self.item_sim_mat[item_to_rate, relevant_items] / \
-                self.item_sim_mat[item_to_rate, relevant_items].sum()
+
+            rel_item = self.item_sim_mat[item_to_rate, relevant_items].data
+            rel_sum = self.item_sim_mat[item_to_rate, relevant_items].sum()
+            rel_rated = self.ratings_mat[user_id, relevant_items].data
+            prod = rel_rated * rel_item
+            if prod.shape[0] == 0:
+                out[item_to_rate] = 0
+                continue
+            out[item_to_rate] = prod / rel_sum
         cleaned_out = np.nan_to_num(out)
         return cleaned_out
 
