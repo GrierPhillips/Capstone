@@ -1,22 +1,31 @@
-import cPickle as pickle
-from bs4 import BeautifulSoup
-import math
-from stem import Signal
-from stem.control import Controller
-import requesocks
-from urlparse import urljoin
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
-import os
-import threading
-import numpy as np
-from scipy import sparse
-import sys
-from ItemItemRecommender import ItemItemRecommender
-import json
-import multiprocessing
-from decimal import Decimal
+"""
+Module for collecting data from GolfAdvisor.com.
 
+This module contains methods for collecting user reviews of golf courses, as
+well as course statistics, information, and user information.
+"""
+# import requesocks
+# import boto3
+# from boto3.dynamodb.conditions import Key, Attr
+# from ItemItemRecommender import ItemItemRecommender
+# from stem import Signal
+# from stem.control import Controller
+
+from decimal import Decimal
+import json
+from math import ceil
+import multiprocessing as mp
+import os
+import pickle as pickle
+import threading
+from urllib.parse import urljoin
+import sys
+
+from bs4 import BeautifulSoup as bs
+from lxml import etree
+import numpy as np
+import requests
+from scipy import sparse
 
 POOL_SIZE = multiprocessing.cpu_count()
 
