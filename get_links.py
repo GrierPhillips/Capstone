@@ -129,24 +129,33 @@ class GolfAdvisor(object):
         queue.put(course_links)
 
     def get_all_reviews(self, url, session_num=0):
-        '''
+        """
         Function to build the course document. Finds the total number of reivew
         pages and gets reviews from each.
-        INPUT:
-            url: string of the base course website
-        OUTPUT:
-            course_doc: json object of course info and nested reviews
-        '''
-        html = self.get_site(url, session_num=session_num)
-        soup = BeautifulSoup(html, 'html.parser')
-        course_info = self.get_course_info(soup, url)
-        if course_info == None:
+
+        Args:
+            url (string): A string of the main course page.
+        Returns:
+            users (list): A list of dictionaries describing the users who left
+                reviews for the course.
+            reviews (list): A list of dictionaries containing all of the
+                review data.
+        """
+        session = self.sessions[session_num]
+        response = session.get(url)
+        soup = bs(response.content, 'html.parser')
+        course_info = self._get_course_info(soup, url)
+        if course_info is None:
             return None, None
-        course_revs = {}
+        users = []
+        reviews = []
         pages = self.check_pages(soup)
-        for i in xrange(1, pages + 1):
-            course_revs.update(self.get_reviews(url + '?page={}'.format(i)))
-        return course_info, course_revs
+        for i in range(1, pages + 1):
+            page = url + '?page={}'.format(i)
+            new_users, new_reviews = self.get_reviews(page)
+            users.extend(new_users)
+            reviews.extend(new_reviews)
+        return users, reviews
 
     def get_reviews(self, url, session_num=0):
         '''
