@@ -27,14 +27,9 @@ import numpy as np
 import requests
 from scipy import sparse
 
-POOL_SIZE = multiprocessing.cpu_count()
+POOL_SIZE = mp.cpu_count()
 
-def apply_defaults(cls):
-    for i in xrange(20):
-        setattr(cls, 's' + str(i), requesocks.session())
-    return cls
 
-@apply_defaults
 class GolfAdvisor(object):
     '''
     Class containing methods for scraping information from the GolfAdvisor
