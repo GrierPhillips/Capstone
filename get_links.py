@@ -179,6 +179,62 @@ class GolfAdvisor(object):
             cleaned_reviews.append(self._parse_review(review))
         return users, reviews
 
+    @staticmethod
+    def _parse_review(review):
+        """
+        Return a dictionary of review information.
+
+        Given a BeautifulSoup element extract the components of the review and
+        organize them into a dictionary.
+
+        Args:
+            review (bs4.element.Tag): A BeautifulSoup tag element that contains
+                all of the information for a single review.
+        Returns:
+            review_info (dict): A dictionary containing all of the provided
+                review components.
+        """
+        review_info = {}
+        review_info['Rating'] = review.find(itemprop='ratingValue').text
+        review_info['Played On'] = review.find(class_='review-play-date').text
+        review_info['Title'] = review.find(itemprop='name').text
+        for label in review.find_all(class_='label'):
+            review_info[label.text] = '1'
+        ratings = review.find(class_='review-secondary-ratings')\
+            .find_all('span')
+        ratings = [rating.text.strip(':\n\t\xa0') for rating in ratings]
+        review_info.update(dict(zip(ratings[::2], ratings[1::2])))
+        return review_info
+
+    @staticmethod
+    def _parse_user_info(review):
+        """
+        Return a dictionary of user information.
+
+        Given a BeautifulSoup element extract the user attributes form the html
+        and organize them into a dictionary.
+
+        Args:
+            review (bs4.element.Tag): A BeautifulSoup tag element that contains
+                all of the information for a single review.
+        Returns:
+            user_info (dict): A dictionary containing all of the provided
+                user information.
+        """
+        info = review.find(
+            class_='bv_review_user_details col-xs-8 col-sm-12'
+        )
+        user_attrs = [item for item in info.find_all('span')]
+        user_attrs = [item.text.strip() for item in user_attrs]
+        user_info = {}
+        user_info['Userpage'] = info.find('a')['href']
+        user_info['Username'] = user_attrs[0]
+        keys = map(lambda x: x.strip(':'), user_attrs[1::2])
+        user_info.update(
+            dict(zip(keys, user_attrs[2::2]))
+        )
+        return user_info
+
     def _get_course_info(self, soup, url):
         """
         Create a document for a golf course, including course stats and info.
