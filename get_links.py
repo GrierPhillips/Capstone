@@ -31,67 +31,30 @@ POOL_SIZE = mp.cpu_count()
 
 
 class GolfAdvisor(object):
-    '''
-    Class containing methods for scraping information from the GolfAdvisor
-    website.
-    '''
-    def __init__(self, courses=None, users=[], ratings_mat=None, review_table=None, info_table=None, user_table=None, course_table=None):
-        # TODO: implement threading with tor for scraping in parallel perhaps using method found at http://stackoverflow.com/questions/14321214/how-to-run-multiple-tor-processes-at-once-with-different-exit-ips
-        proxies = [9050] + range(9052,9071)
-        self.sessions = [self.s0, self.s1, self.s2, self.s3, self.s4, self.s5,
-                         self.s6, self.s7, self.s8, self.s9, self.s10, self.s11,
-                         self.s12, self.s13, self.s14, self.s15, self.s16,
-                         self.s17, self.s18, self.s19]
-        for i, s in enumerate(self.sessions):
-            s.proxies = {'http':  'socks5://127.0.0.1:{}'.format(proxies[i]),
-                         'https': 'socks5://127.0.0.1:{}'.format(proxies[i])}
-        # self.session = requesocks.session()
-        # self.session.proxies = {'http':  'socks5://127.0.0.1:9050',
-        #                         'https': 'socks5://127.0.0.1:9050'}
-        self.url = 'http://www.golfadvisor.com/course-directory/'
-        self.review_num = 0
-        self.requests = 0
+    """
+    Class containing methods for scraping information from GolfAdvisor.com.
+    """
+    def __init__(self, courses=None):
+        self.sessions = []
+        self.setup_sessions()
         self.courses = courses
-        self.users = users
-        self.missing_courses = []
-        self.ratings_mat = ratings_mat
-        self.review_table = review_table
-        self.info_table = info_table
-        self.user_table = user_table
-        self.course_table = course_table
 
-    @staticmethod
-    def renew_connection():
-        '''
-        Change tor exit node. This will allow cycling of IP addresses such that
-        no address makes 2 requests in a row.
-        INPUT:
-            None
-        OUTPUT:
-            None
-        '''
-        with Controller.from_port(port = 9051) as controller:
-            controller.authenticate(password="password")
-            controller.signal(Signal.NEWNYM)
+    def setup_sessions(self):
+        """Setup as many requests Sessions as there are cores available."""
+        for _ in range(40):
+            self.sessions.append(requests.Session())
+        self._setup_proxies()
 
-    def get_site(self, url, session_num=0):
-        '''
-        Condensed process for getting site html and changing ip address.
-        INPUT:
-            url: string. website to pull html from.
-        OUTPUT:
-            html: string. html of desired site.
-        '''
-        try:
-            html = self.sessions[session_num].get(url).text
-        except:
-            self.renew_connection()
-            html = self.sessions[session_num].get(url).text
-        self.requests += 1
-        if self.requests > 20:
-            self.requests = 0
-            self.renew_connection()
-        return html
+    def _setup_proxies(self):
+        """Setup proxies for all sessions."""
+        all_proxies = [9050] + list(range(9052, 9091))
+        for index, session in enumerate(self.sessions):
+            proxy = all_proxies[index]
+            proxies = {
+                'http': 'socks5://127.0.0.1:{}'.format(proxy),
+                'https': 'socks5://127.0.0.1:{}'.format(proxy)
+            }
+            setattr(session, 'proxies', proxies)
 
     def get_courses(self):
         '''
