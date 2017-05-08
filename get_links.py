@@ -158,21 +158,25 @@ class GolfAdvisor(object):
         return users, reviews
 
     def get_reviews(self, url, session_num=0):
-        '''
-        Retrieve all reviews on a single page.
-        INPUT:
-            url: string of webpage address from which to retrieve reviews
-        OUTPUT:
-            reviews: list of review elements from page. Full html.
-        '''
-        html = self.get_site(url, session_num=session_num)
-        soup = BeautifulSoup(html, 'html.parser')
+        """
+        Parse all reviews on a single page.
+
+        Args:
+            url (string): Page address from which to retrieve reviews.
+        Returns:
+            clearned_reviews (list): List of cleaned reviews stored as
+                dictionaries.
+            users (list): List of users stored as dictionaries.
+        """
+        session = self.sessions[session_num]
+        response = session.get(url)
+        soup = bs(response.content, 'html.parser')
         reviews = soup.find_all(itemprop='review')
         users = []
+        cleaned_reviews = []
         for review in reviews:
-            users.append(review.find(itemprop='author').text)
-        reviews[:] = [str(review) for review in reviews]
-        reviews = {users[i]: review for i, review in enumerate(reviews)}
+            users.append(self._parse_user_info(review))
+            cleaned_reviews.append(self._parse_review(review))
         return reviews
 
     def get_course_info(self, soup, url):
