@@ -177,7 +177,7 @@ class GolfAdvisor(object):
         for review in reviews:
             users.append(self._parse_user_info(review))
             cleaned_reviews.append(self._parse_review(review))
-        return reviews
+        return users, reviews
 
     def get_course_info(self, soup, url):
         '''
