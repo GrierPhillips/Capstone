@@ -57,39 +57,76 @@ class GolfAdvisor(object):
             setattr(session, 'proxies', proxies)
 
     def get_courses(self):
-        '''
-        Function to crawl through all cities, states, and countries to collect
-        complete list of all course links.
-        INPUT:
-            self: uses self.url and self.browser
-        OUTPUT:
-            courses: a set of all courses listed on the website
-        '''
-        # TODO: For any future developments note that a list of all course links
-        # are available 1000 per page through www.golfadvisor.com/sitemap_courses-%PAGENUM%.xml
-        # the entire sitemap is available through http://www.golfadvisor.com/sitemap.xml
-        # import pdb; pdb.set_trace()
-        html = self.get_site(self.url)
-        courses = set()
-        soup = BeautifulSoup(html, 'html.parser')
-        countries = soup.find_all('li', class_='col-sm-6')
-        courses = self.walk_directory(countries, courses, self.url)
-        self.courses = courses
-        return courses
+        """
+        Collect course links from golfadvisor.
 
-    def walk_directory(self, elements, courses, url):
-        for element in elements:
-            site = urljoin(url, element.a['href'])
-            html = self.get_site(site)
-            soup = BeautifulSoup(html, 'html.parser')
-            sub_elements = soup.find_all('li', class_='col-sm-6')
-            if len(sub_elements) == 0:
-                courses.update([x.a['href'] for x in soup.\
-                                find_all('div', class_='teaser')])
-                print 'Courses updated with courses from {}'.format(element.a['href'])
-            else:
-                self.walk_directory(sub_elements, courses, site)
-        return courses
+        GolfAdvisor stores courses and their links in xml format with 1000
+        courses per page at golfadvisor.com/sitemap_courses-#.xml where # is
+        replaced with an integer starting at 1. As of last update there were
+        34 pages containing courses.
+
+        Returns:
+            course_links (list): A list of urls for all of the courses
+                contained in the sitemap.
+        """
+        sitemap = 'http://www.golfadvisor.com/sitemap_courses-#.xml'
+        pages = np.array(
+            [sitemap.replace('#', str(index)) for index in range(1, 35)]
+        )
+        page_lists = np.array_split(pages, POOL_SIZE)
+        pool = mp.Pool()
+        results = pool.starmap(
+            self._get_course_pages,
+            zip(page_lists, range(len(page_lists)))
+        )
+        pool.close()
+        pool.join()
+        course_links = [link for links in results for link in links]
+        return course_links
+
+    def _get_course_pages(self, pages, session_num):
+        """
+        Distribute calls to collect individual pages to multliple threads.
+
+        Given a list of pages to collect, spread out the requests to multliple
+        threads to improve performance.
+        """
+        threads = []
+        queue = mp.Queue()
+        for page in pages:
+            thread = threading.Thread(
+                target=self._get_courses_page,
+                args=(page, session_num, queue)
+            )
+            thread.start()
+            threads.append(thread)
+        for thread in threads:
+            thread.join()
+        queue.put(None)
+        course_links = []
+        while True:
+            result = queue.get()
+            if result is None:
+                return course_links
+            course_links.extend(result)
+
+    def _get_courses_page(self, page, session_num, queue):
+        """
+        Collect all courses from a given page.
+
+        Given a page url retrieve the xml, and parse out all of the course
+        links.
+
+        Args:
+            page (string): A url for the sitemap page containing course links.
+            session_num (int): Integer representing the session number to use
+                for making requests.
+        """
+        session = self.sessions[session_num]
+        response = session.get(page)
+        xml = etree.fromstring(response.content)  # pylint: disable=E1101
+        course_links = [course.text for course in xml.iter('{*}loc')]
+        queue.put(course_links)
 
     def get_all_reviews(self, url, session_num=0):
         '''
