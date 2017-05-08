@@ -355,31 +355,19 @@ class GolfAdvisor(object):
         layout = dict([child.text.split(': ') for child in info][:-1])
         return layout
 
-    """
-    def get_user_review(self, review):
-        user_review = {}
-        author = review.find_element_by_xpath(".//span[@itemprop='author']")\
-                 .get_attribute('innerHTML')
-        age = review.find_element_by_xpath(".//span[@class='context-value Age']")\
-              .get_attribute('innerHTML')
-        gen = review.find_element_by_xpath(".//span[@class='context-value Gender']")\
-              .get_attribute('innerHTML')
-        user_review['author'] = author
-        user_review['age'] = age
-        user_review['gender'] = gen
-
-        return course_doc
-        """
-
     @staticmethod
     def check_pages(soup):
         """
+        Return the number of pages of reviews a course has.
+
         Given the total number of reivews for a course determine the number
-        of pages that are populated with reviews. There are 20 reviews per page.
-        INPUT:
-            soup: parsed html from BeautifulSoup
-        OUTPUT:
-            pages: int number of pages containing reviews
+        of pages that are populated with reviews. Each page has 20 reviews.
+
+        Args:
+            soup (bs4.BeautifulSoup): BeautifulSoup instance containing course
+                html.
+        Returns:
+            pages (int): Number of pages containing reviews.
         """
         review_count = int(soup.find(itemprop='reviewCount').text.strip('()'))
         pages = 1
