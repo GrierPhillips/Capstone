@@ -179,71 +179,127 @@ class GolfAdvisor(object):
             cleaned_reviews.append(self._parse_review(review))
         return users, reviews
 
-    def get_course_info(self, soup, url):
-        '''
-        Create an entry for a golf course, including course stats and info.
-        Brings in entire html of desired sections for parsing later.
-        INPUT:
-            soup: parsed html from BeautifulSoup
-        OUTPUT:
-            course_doc: a dictionary containing the course stats and info
-        '''
+    def _get_course_info(self, soup, url):
+        """
+        Create a document for a golf course, including course stats and info.
+
+        Args:
+            soup (bs4.BeautifulSoup): BeautifulSoup instance containing html
+                for the main course page.
+            url (string): The address of the main course page.
+        Returns:
+            course_doc (dict): Dictionary containing the course stats and info.
+        """
         course_doc = {}
-        try:
-            name = soup.find(itemprop='name').text
-        except:
-            self.missing_courses.append(url.split('.com')[-1])
-            return None
-        course_doc['Course'] = url
-        course_doc['Course_Id'] = self.courses.index(url.split('.com')[-1])
-        course_doc['Name'] = name
-        atts = str(soup.find(class_='course-essential-info-top'))
-        course_doc['attributes'] = atts
-        # TODO: Move this logic to the operations side when parsing docs
-        '''# go through attributes and convert numbers to float or int
-        for att in atts[:-1]:
-            name, val = att.get_attribute('innerHTML').split()
-            name = name[:-1]
-            if val.find('.') != -1:
-                val = float(val)
-            # fix all values to yards
-            elif 'meters' in val:
-                val = int(round(int(val[:-7]) * 1.09361329834))
-            elif 'yards' in val:
-                val = int(val[:-6])
-            course_doc[name] = val
-        # last list element is an 'a' tag with attributes for id, lat, and long
-        for att in atts[-1].get_attribute('innerHTML').strip().split()[3:6]:
-            name, val = att.replace('\"', '').split('=')
-            if val.find('.') != -1:
-                val = float(val)
-            course_doc[name] = val'''
-        # replace address and info with complete html block
-        '''address = self.browser.find_element_by_class_name('address')\
-                  .get_attribute('innerHTML')
-        key_info = self.browser.find_element_by_class_name('key-info')\
-                   .find_elements_by_tag_name('div')
-        arch_div = key_info.pop(3).get_attribute('innerHTML')
-        text = BeautifulSoup(arch_div, 'html.parser').text
-        text = text.strip().split(':\n')
-        year_cleanr = re.compile('\([0-9]*\)')
-        title_cleanr = re.compile(',\s[A-Z]r.')
-        name, val = text[0], text[1].strip()
-        val = re.sub(year_cleanr, '', val)
-        val = re.sub(title_cleanr, '', val).split(',')
-        for i in xrange(len(val)):
-            val[i] = val[i].strip()
-        course_doc[name] = val
-        for key in key_info[2:]:
-            name, val = key.get_attribute('innerHTML').strip().split(': ')
-            course_doc[name] = val'''
-        info = str(soup.find(class_='row course-info-top-row'))
-        course_doc['info'] = info
-        more = str(soup.find(id='more'))
-        course_doc['more'] = more
+        course_doc['GA_Url'] = url
+        course_doc['Course_Id'] = self.courses.index(url)
+        course_doc['Name'] = soup.find(itemprop='name').text
+        course_doc['Layout'] = self._get_layout(soup)
+        course_doc.update(self._parse_address(soup))
+        course_doc.update(self._get_key_info(soup))
+        course_doc['Tees'] = self._get_tee_info(soup)
+        course_doc.update(self._get_extras(soup))
         return course_doc
 
-    '''
+    @staticmethod
+    def _get_extras(soup):
+        """
+        Return a dictionary of extra information about the course.
+
+        Some courses contain extra information about driving range, carts,
+        spikes, lessons, etc... Collect and return this information as a
+        dictionary with keys as the information and values as a 'Yes' or 'No'.
+
+        Args:
+            soup (bs4.BeautifulSoup): BeautifulSoup instance containing course
+                html.
+        Returns:
+            extras (dict): Dictionary of course extras.
+        """
+        extras_groups = soup.find(id='more').find_all(class_='col-sm-4')
+        extras_lists = [group.find_all('div') for group in extras_groups]
+        extras = dict(
+            [extra.text.split(': ') for lst in extras_lists for extra in lst]
+        )
+        return extras
+
+    @staticmethod
+    def _get_tee_info(soup):
+        """
+        Return a dictionary of tees.
+
+        Given the html for a course, return a dictionary of tees where the tee
+        names are the keys and the values are dictionaries containing the
+        stats for that tee (length, par, slope, rating).
+
+        Args:
+            soup (bs4.BeautifulSoup): BeautifulSoup instance containing course
+                html.
+        Returns:
+            tees (dict): Dictionary of tee documents.
+        """
+        rows = soup.find('tr')
+        tees = {}
+        headings = [head.text for head in rows[0].find_all('th')]
+        all_tees = [value.text.strip().split('\n') for value in rows[1:]]
+        for tee in all_tees:
+            tees[tee[0]] = dict(zip(headings[1:], tee[1:]))
+        return tees
+
+    @staticmethod
+    def _get_key_info(soup):
+        """
+        Return dictionary of key info about the course extracted from html.
+
+        Args:
+            soup (bs4.BeautifulSoup): BeautifulSoup instance containing course
+                html.
+        Returns:
+            key_info (dict): They pieces of key info provided about the course.
+        """
+        info = soup.find(class_='key-info clearfix').find_all('div')[2:]
+        key_info = dict([item.text.split(': ') for item in info])
+        return key_info
+
+    @staticmethod
+    def _parse_address(soup):
+        """
+        Return dictionary of address items for the course extracted from html.
+
+        Args:
+            soup (bs4.BeautifulSoup): BeautifulSoup instance containing course
+                html.
+        Returns:
+            address (dict): Dictionary containing the mailing address and all
+                of the components of the address.
+        """
+        address = dict()
+        address_info = soup.find_all(class_='address')
+        for item in address_info:
+            if 'itemprop' in item.keys():
+                address[item.attrs['itemprop']] = item.text
+            else:
+                address[item.attrs['class'][0]] = item.text
+        return address
+
+    @staticmethod
+    def _get_layout(soup):
+        """
+        Return dictionary of course layout from the html.
+
+        Args:
+            soup (bs4.BeautifulSoup): BeautifulSoup instance containing course
+                html.
+        Returns:
+            layout (dictionary): Dictionary containing all elements of the
+                course layout that are present: Holes, Par, Length, Slope,
+                and Rating.
+        """
+        info = soup.find(class_='course-essential-info-top').find_all('li')
+        layout = dict([child.text.split(': ') for child in info][:-1])
+        return layout
+
+    """
     def get_user_review(self, review):
         user_review = {}
         author = review.find_element_by_xpath(".//span[@itemprop='author']")\
