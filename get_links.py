@@ -369,26 +369,26 @@ class GolfAdvisor(object):
         user_review['gender'] = gen
 
         return course_doc
-        '''
+        """
 
-    def check_pages(self, soup):
-        '''
+    @staticmethod
+    def check_pages(soup):
+        """
         Given the total number of reivews for a course determine the number
         of pages that are populated with reviews. There are 20 reviews per page.
         INPUT:
             soup: parsed html from BeautifulSoup
         OUTPUT:
             pages: int number of pages containing reviews
-        '''
-        review_count = float(soup.find(itemprop='reviewCount').text.strip('\)')\
-                                 .strip('\('))
+        """
+        review_count = int(soup.find(itemprop='reviewCount').text.strip('()'))
         pages = 1
         if review_count > 20:
-            pages = int(math.ceil(review_count / 20))
+            pages = ceil(review_count / 20)
         return pages
 
     def write_to_dynamodb(self, record, table):
-        '''
+        """
         Write to dynamodb using boto3.
         INPUT:
             record: dictionary. course_doc containing keys = ['Course',
@@ -396,12 +396,12 @@ class GolfAdvisor(object):
             table: boto3 dynamodb table object
         OUTPUT;
             None
-        '''
+        """
 
         table.put_item(Item=record)
 
-    def get_and_store_reviews(self, urls, info_table, review_table, session_num=0):
-        '''
+    def get_and_store_reviews(self, course_links, session_num=0):
+        """
         Complete pipeline for getting reviews from a list of pages, creating a
         course record in the form of a dictionary (primary key='Course'), and
         storing reviews in Dynamodb.
@@ -429,23 +429,26 @@ class GolfAdvisor(object):
 
 
     def parallel_scrape_reviews(self, links, info_table, review_table):
-        '''
+        """
         Setup and implement threads for parallel scraping of course reviews and
         writing results to dynamodb.
         INPUT:
             table: boto3 dynamodb table object
         OUTPUT:
             None
-        '''
+        """
         jobs = []
         for i in range(len(self.sessions)):
-            thread = threading.Thread(name=i,
-                                      target=self.get_and_store_reviews,
-                                      args=(links[i],
-                                            info_table,
-                                            review_table,
-                                            i)
-                                      )
+            thread = threading.Thread(
+                name=i,
+                target=self.get_and_store_reviews,
+                args=(
+                    links[i],
+                    info_table,
+                    review_table,
+                    i
+                )
+            )
             jobs.append(thread)
             thread.start()
         for j in jobs:
@@ -459,7 +462,7 @@ class GolfAdvisor(object):
 
     def create_users_table(self, reviews_table, users_table):
         users = set()
-        for i in xrange(len(self.courses)):
+        for i in range(len(self.courses)):
             response = reviews_table.query(
                 KeyConditionExpression=Key('Course_Id').eq(i)
             )
@@ -472,7 +475,7 @@ class GolfAdvisor(object):
                 batch.put_item(Item={'User_Id': i, 'Username': user})
 
     def get_users(self, users_table):
-        for i in xrange(209994):
+        for i in range(209994):
             response = users_table.query(
                 KeyConditionExpression=Key('User_Id').eq(i)
             )
@@ -494,7 +497,7 @@ class GolfAdvisor(object):
 
     def parallel_query_reviews(self, function, num_cores, *args):
         # import pdb; pdb.set_trace()
-        num = int(math.ceil(len(self.courses) / float(num_cores)))
+        num = int(ceil(len(self.courses) / float(num_cores)))
         links = list(self.chunks(range(len(self.courses)), num))
         jobs = []
         for i in range(num_cores):
@@ -516,7 +519,7 @@ class GolfAdvisor(object):
             new_item['Course_Id'] = item['Course_Id']
             new_item['Name'] = item['Name']
             try:
-                soup = BeautifulSoup(item['attributes'], 'html.parser')
+                soup = bs(item['attributes'], 'html.parser')
             except:
                 self.missing_courses.append(i)
             atts = {'Holes': None, 'Par': None, 'Length': None, 'Slope': None, 'Rating': None}
@@ -544,7 +547,7 @@ class GolfAdvisor(object):
             except:
                 self.missing_courses.append(i)
             try:
-                soup = BeautifulSoup(item['info'], 'html.parser')
+                soup = bs(item['info'], 'html.parser')
                 address_item = {'Address': None,
                                 'City': None,
                                 'State': None,
@@ -597,7 +600,7 @@ class GolfAdvisor(object):
                     image_links = None
                 try:
                     divs = soup.find_all('div')
-                    for j in xrange(-5, 0):
+                    for j in range(-5, 0):
                         try:
                             class_ = divs[j]['class']
                         except:
@@ -615,9 +618,9 @@ class GolfAdvisor(object):
                 new_item.update(address_item)
             except:
                 self.missing_courses.append(i)
-            print 'Course ', i, 'successfully parsed'
+            print('Course ', i, 'successfully parsed')
             # try:
-            #     soup = BeautifulSoup(item['more'], 'html.parser')
+            #     soup = bs(item['more'], 'html.parser')
             #     more_info = {'Carts': None,
             #                  'Pull-carts': None,
             #                  'Clubs': None,
@@ -655,7 +658,7 @@ class GolfAdvisor(object):
 
     def build_mat(self, indices):
         for i in indices:
-            print 'Course index ', i, 'processed into ratings_mat'
+            print('Course index ', i, 'processed into ratings_mat')
             response = self.review_table.query(KeyConditionExpression=Key('Course_Id').eq(i))
             ratings = []
             users = []
@@ -671,7 +674,7 @@ class GolfAdvisor(object):
 
     def check_missing(self, info_table):
         missing_course_ids = []
-        for i in xrange(len(self.courses)):
+        for i in range(len(self.courses)):
             response = info_table.query(
                 KeyConditionExpression=Key('Course_Id').eq(i)
             )
@@ -683,7 +686,7 @@ class GolfAdvisor(object):
         for course in courses:
             url = urljoin(self.url, course)
             html = self.get_site(url, session_num=session_num)
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = bs(html, 'html.parser')
             try:
                 exists = soup.find(class_='container simple-page-wrapper').h1.text
             except:
@@ -723,7 +726,7 @@ class GolfAdvisor(object):
         self.error_items = {}
 
         for i in indices:
-            print 'Course index', i, 'html parsed.'
+            print('Course index', i, 'html parsed.')
             response = self.review_table.query(KeyConditionExpression=Key('Course_Id').eq(i))
             items = response['Items']
             while 'LastEvaluatedKey' in response.keys():
@@ -736,7 +739,7 @@ class GolfAdvisor(object):
                 try:
                     parsed = item['Rating']
                 except:
-                    soup = BeautifulSoup(item['Review'], 'html.parser')
+                    soup = bs(item['Review'], 'html.parser')
                     try:
                         review_id = int(soup.div.div['id'].split('-')[-1])
                     except:
