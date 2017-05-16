@@ -7,6 +7,9 @@ This module provides utility functions that are used within GolfRecs.
 from math import ceil
 
 
+from stem import Signal
+from stem.control import Controller
+
 def get_extras(soup):
     """
     Return a dictionary of extra information about the course.
@@ -21,10 +24,13 @@ def get_extras(soup):
     Returns:
         extras (dict): Dictionary of course extras.
     """
-    extras_groups = soup.find(id='more').find_all(class_='col-sm-4')
+    try:
+        extras_groups = soup.find(id='more').find_all(class_='col-sm-4')
+    except AttributeError:
+        return {}
     extras_lists = [group.find_all('div') for group in extras_groups]
     extras = dict(
-        [extra.text.split(': ') for lst in extras_lists for extra in lst]
+        [extra.text.split(': ', 1) for lst in extras_lists for extra in lst]
     )
     return extras
 
@@ -43,13 +49,18 @@ def get_tee_info(soup):
     Returns:
         tees (dict): Dictionary of tee documents.
     """
-    rows = soup.find('tr')
+    rows = soup.find_all('tr')
     tees = {}
-    headings = [head.text for head in rows[0].find_all('th')]
-    all_tees = [value.text.strip().split('\n') for value in rows[1:]]
-    for tee in all_tees:
-        tees[tee[0]] = dict(zip(headings[1:], tee[1:]))
-    return tees
+    try:
+        headings = [head.text for head in rows[0].find_all('th')]
+        all_tees = [value.text.strip().split('\n') for value in rows[1:]]
+        for tee in all_tees:
+            tees[tee[0].replace('.', '').replace('$', '')] = dict(
+                zip(headings[1:], tee[1:])
+            )
+        return tees
+    except IndexError:
+        return {}
 
 
 def get_key_info(soup):
@@ -62,8 +73,12 @@ def get_key_info(soup):
     Returns:
         key_info (dict): They pieces of key info provided about the course.
     """
-    info = soup.find(class_='key-info clearfix').find_all('div')[2:]
-    key_info = dict([item.text.split(': ') for item in info])
+    try:
+        info = soup.find(class_='key-info clearfix').find_all('div')[2:]
+    except AttributeError:
+        return {}
+    item_pairs = [item.text.split(':', 1) for item in info]
+    key_info = dict([list(map(str.strip, pair)) for pair in item_pairs])
     return key_info
 
 
@@ -81,7 +96,7 @@ def parse_address(soup):
     address = dict()
     address_info = soup.find_all(class_='address')
     for item in address_info:
-        if 'itemprop' in item.keys():
+        if 'itemprop' in item.attrs.keys():
             address[item.attrs['itemprop']] = item.text
         else:
             address[item.attrs['class'][0]] = item.text
@@ -100,7 +115,10 @@ def get_layout(soup):
             course layout that are present: Holes, Par, Length, Slope,
             and Rating.
     """
-    info = soup.find(class_='course-essential-info-top').find_all('li')
+    try:
+        info = soup.find(class_='course-essential-info-top').find_all('li')
+    except AttributeError:
+        return {}
     layout = dict([child.text.split(': ') for child in info][:-1])
     return layout
 
@@ -120,15 +138,29 @@ def parse_review(review):
             review components.
     """
     review_info = {}
+    id_ = review.find(class_='row')['id'].split('-')[1]
+    review_info['Review Id'] = id_
     review_info['Rating'] = review.find(itemprop='ratingValue').text
-    review_info['Played On'] = review.find(class_='review-play-date').text
-    review_info['Title'] = review.find(itemprop='name').text
+    try:
+        review_info['Played On'] = review.find(class_='review-play-date').text
+    except AttributeError:
+        pass
+    try:
+        review_info['Title'] = review.find(itemprop='name').text
+    except AttributeError:
+        pass
     for label in review.find_all(class_='label'):
         review_info[label.text] = '1'
-    ratings = review.find(class_='review-secondary-ratings')\
-        .find_all('span')
-    ratings = [rating.text.strip(':\n\t\xa0') for rating in ratings]
-    review_info.update(dict(zip(ratings[::2], ratings[1::2])))
+    try:
+        ratings = review.find(class_='review-secondary-ratings')\
+            .find_all('span')
+        ratings = [rating.text.strip(':\n\t\xa0') for rating in ratings]
+        review_info.update(dict(zip(ratings[::2], ratings[1::2])))
+    except AttributeError:
+        pass
+    paragraphs = review.find(class_='review-body').find_all('p')
+    text = ' '.join([paragraph.text for paragraph in paragraphs])
+    review_info['Review'] = text
     return review_info
 
 
@@ -152,7 +184,10 @@ def parse_user_info(review):
     user_attrs = [item for item in info.find_all('span')]
     user_attrs = [item.text.strip() for item in user_attrs]
     user_info = {}
-    user_info['Userpage'] = info.find('a')['href']
+    try:
+        user_info['Userpage'] = info.find('a')['href']
+    except TypeError:
+        pass
     user_info['Username'] = user_attrs[0]
     keys = map(lambda x: x.strip(':'), user_attrs[1::2])
     user_info.update(
@@ -179,3 +214,32 @@ def check_pages(soup):
     if review_count > 20:
         pages = ceil(review_count / 20)
     return pages
+
+
+def get_course_info(soup, url):
+    """
+    Create a document for a golf course, including course stats and info.
+
+    Args:
+        soup (bs4.BeautifulSoup): BeautifulSoup instance containing html
+            for the main course page.
+        url (string): The address of the main course page.
+    Returns:
+        course_doc (dict): Dictionary containing the course stats and info.
+    """
+    course_doc = {}
+    course_doc['GA Url'] = url
+    course_doc['Name'] = soup.find(itemprop='name').text
+    course_doc['Layout'] = get_layout(soup)
+    course_doc.update(parse_address(soup))
+    course_doc.update(get_key_info(soup))
+    course_doc['Tees'] = get_tee_info(soup)
+    course_doc.update(get_extras(soup))
+    return course_doc
+
+
+def renew_connection():
+    """Change tor exit node. This will allow cycling of IP addresses."""
+    with Controller.from_port(port=9051) as controller:
+        controller.authenticate(password="password")
+        controller.signal(Signal.NEWNYM)
