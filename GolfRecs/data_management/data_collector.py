@@ -1,5 +1,4 @@
-"""
-Module for collecting data from GolfAdvisor.com.
+"""Module for collecting data from GolfAdvisor.com.
 
 This module contains methods for collecting user reviews of golf courses, as
 well as course statistics, information, and user information.
@@ -13,18 +12,17 @@ from lxml import etree
 from numpy import array, array_split
 import requests
 
-from data_handler import DataHandler
-from utils import renew_connection
+from . import DataHandler
+from . import renew_connection
 
 POOL_SIZE = cpu_count()
 
 
-class GolfRecs(object):
-    """
-    Class containing methods for scraping information from GolfAdvisor.com.
+class DataCollector(object):
+    """Class containing methods for scraping information from GolfAdvisor.com.
 
-    The GolfRecs class is the main controller for all activities relating to
-    the backend of collecting, storing, and updating data for the GolfRecs
+    The DataCollector class is the main controller for all activities relating
+    to the backend of collecting, storing, and updating data for the GolfRecs
     predictive model.
 
     Attributes:
@@ -32,29 +30,29 @@ class GolfRecs(object):
         sessions (list of requests.sessions.Session): A list of requests
             sessions that are setup for making requests from multiple IP
             addresses.
+
     """
 
     def __init__(self):
-        """
-        Setup the GolfRecs class.
+        """Set up the GolfRecs class.
 
-        The GolfRecs class leverages tor and requests to construct an array of
-        requests.Session objects that all utlize a different IP address to
-        make requests. This method sets up these objects and sets their proxies
-        accordingly.
+        The DataCollector class leverages tor and requests to construct an
+        array of requests.Session objects that all utlize a different IP
+        address to make requests. This method sets up these objects and sets
+        their proxies accordingly.
         """
         self.courses = None
         self.sessions = []
         self._setup_sessions()
 
     def _setup_sessions(self):
-        """Setup as many requests Sessions as there are cores available."""
+        """Set up as many requests Sessions as there are cores available."""
         for _ in range(POOL_SIZE):
             self.sessions.append(requests.Session())
         self._setup_proxies()
 
     def _setup_proxies(self):
-        """Setup proxies for all sessions."""
+        """Set up proxies for all sessions."""
         all_proxies = [9050] + list(range(9052, 9052 + POOL_SIZE - 1))
         for index, session in enumerate(self.sessions):
             proxy = all_proxies[index]
@@ -65,17 +63,12 @@ class GolfRecs(object):
             setattr(session, 'proxies', proxies)
 
     def get_courses(self):
-        """
-        Collect course links from golfadvisor.
+        """Collect course links from golfadvisor.
 
         GolfAdvisor stores courses and their links in xml format with 1000
         courses per page at golfadvisor.com/sitemap_courses-#.xml where # is
         replaced with an integer starting at 1. As of last update there were
         34 pages containing courses.
-
-        Returns:
-            course_links (list): A list of urls for all of the courses
-                contained in the sitemap.
         """
         sitemap = 'http://www.golfadvisor.com/sitemap_courses-#.xml'
         pages = array(
@@ -88,8 +81,7 @@ class GolfRecs(object):
         self.courses = courses
 
     def _get_course_pages(self, args):
-        """
-        Distribute calls to collect individual pages to multliple threads.
+        """Distribute calls to collect individual pages to multliple threads.
 
         Given a list of pages to collect, spread out the requests to multliple
         threads to improve performance.
@@ -106,8 +98,7 @@ class GolfRecs(object):
         return courses
 
     def _get_page(self, session_num, page):
-        """
-        Collect all courses from a given page.
+        """Collect all courses from a given page.
 
         Given a page url retrieve the xml, and parse out all of the course
         links.
@@ -124,8 +115,7 @@ class GolfRecs(object):
         return course_links
 
     def get_reviews(self):
-        """
-        Collect data for all links in self.courses and store it in MongoDB.
+        """Collect data for all links in self.courses and store it in MongoDB.
 
         Once self.courses in populated with a list of links, this method will
         distribute the links among multiple processes to collect the reviews,
