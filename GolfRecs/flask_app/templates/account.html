@@ -1,0 +1,63 @@
+{% extends '/layouts/main.html' %}
+{% block title %}
+  Welcom back {{ session['username'] }}
+{% endblock %}
+
+{% block content %}
+<section class="success" id="profile">
+  <div class="container">
+  	<div class="row">
+  		<h2>My Account</h2>
+  	</div>
+    <div class='row'>
+      <h3>Profile</h3>
+      <p>{{ session['username']}}</p>
+      <!-- {% if request.args.get('message') %}
+        <p>{{ request.args.get('message') }}</p>
+      {% endif %} -->
+      {% if message %}
+          {{ message }}
+      {% endif %}
+      {% if atts %}
+        {% for attr in user_attrs %}
+            {% if attr in user_item.keys() %}
+              <p>{{ attr }}:  {{ user_item[attr] }}</p>
+            {% endif %}
+        {% endfor %}
+      {% else %}
+        <p>It looks like you haven't set any profile attributes.</p>
+      {% endif %}
+        <a href='/update_profile' class="btn btn-lg btn-outline">Update Profile</a>
+
+
+    </div>
+    <div class='row'>
+      <h3>My Reviews</h3>
+    </div>
+      <div class='row lead'>
+        <a href='/review' class='btn btn-lg btn-outline'>Review a Course</a>
+      </div>
+      {% if reviews == None %}
+          <div class="row lead">
+            <p>It looks like you haven't reviewed any courses yet</p>
+
+          </div>
+      {% else %}
+          {% for item in reviews %}
+          <div class="row lead">
+              <h4>{{ item['Course'] }}</h4>
+              <h4>Review:</h4>
+              <p>{{ item['Review'] }}</p>
+              {% for attr in rev_attrs %}
+                  {% if attr in item.keys() %}
+                  <p>{{attr}}:  {{item[attr]}}</p>
+                  {% endif %}
+              {% endfor %}
+      	  </div>
+          {% endfor %}
+      {% endif %}
+
+
+  </div>
+</section>
+{% endblock %}

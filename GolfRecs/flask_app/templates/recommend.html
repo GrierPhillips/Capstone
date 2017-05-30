@@ -1,0 +1,131 @@
+{% extends '/layouts/main.html' %}
+{% block title %}
+  Get a Recommendation
+{% endblock %}
+{% block content %}
+<section class="success" id="profile">
+  <div class="container">
+  	<div class="row">
+  		<h2>Recommendations</h2>
+      <p>All recommendations are made within a 100 mile radius of your current location.</p>
+  	</div>
+    <div class='row'>
+      <h3>Current Location:</h3>
+        <p>{{ items['Location'] }}</p>
+    </div>
+    <div class='row'>
+      <div class='col-md-6'>
+        <form class="form-horizontal" action="/recommend" method="POST" role=form>
+        {{ form.csrf_token }}
+          <fieldset>
+            <div id="legend">
+              <p>Get recommendations for a different location</p>
+              {% if error %}
+                  <p><strong>Error: {{ error }}</strong>
+              {% endif %}
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="state">Select a State</label>
+              <div class="controls">
+                <!--<input type='text' id='course' name='course' placeholder='Enter course name' class='form-control input-lg' data-source='{{ courses }}'>-->
+                <select name='state' id='state'>
+                  <option disabled='True' selected='selected'>Select a State</option>
+                  {% for state in states %}
+                    <option value='{{ state }}'>{{ state }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label" for="course">Select a City</label>
+              <div class="controls">
+                <!--<input type='text' id='course' name='course' placeholder='Enter course name' class='form-control input-lg' data-source='{{ courses }}'>-->
+                <select name='city' id='city'>
+                  <option disabled='True' selected='selected'>Select a City</option>
+                </select>
+              </div>
+            </div>
+            <br>
+            <div class="control-group">
+              <!-- Button -->
+              <div class="controls">
+                <button class="btn btn-success" type='submit' onclick='loading();'>Get Recommendations</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class='row'>
+          <h3>Courses:</h3>
+          {% for item in items['Names'] %}
+            {% if not items['Images'][loop.index - 1] %}
+              <div class='row'>
+                <div class='col-sm-3'>
+                  <a href='{{ items["Links"][loop.index - 1] }}' class="btn btn-sm btn-outline">{{ items['Names'][loop.index - 1] }}</a>
+                </div>
+              </div>
+            {% else %}
+              <div class='row'>
+                <div class='col-sm-3'>
+                  <img src='{{ items["Images"][loop.index - 1] }}' style="max-height: 400px; max-width: 400px;" />
+                </div>
+              </div>
+              <div class='row'>
+                <div class='col-sm-3'>
+                  <a href='{{ items["Links"][loop.index - 1] }}' class="btn btn-sm btn-outline">{{ items['Names'][loop.index - 1] }}</a>
+                </div>
+              </div>
+              <br>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+
+
+
+
+  </div>
+</section>
+
+
+{% endblock %}
+
+{% block script %}
+<script type=text/javascript>
+  $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+</script>
+<script>
+$('#state').on('change', function() {
+
+      $("#city").empty();
+
+      state_name = $("#state option:selected").text();
+      state_id = $("#state option:selected").val();
+
+      //Sending variables containing selection info to parse_data function in python.
+      // jQuery's builtin ajax functions make things super easy
+
+      // Calling that parse url and sending it arguments
+      $.getJSON($SCRIPT_ROOT + '/_get_cities', {
+          a: state_name
+
+      // Function to get data returned from parse_data and populate the second select field.
+      }, function(data) {
+          // Using jQuery to populate new entries we got from flask.
+          var options = $("#city");
+          $.each(data, function() {
+              options.append($("<option />").val(this).text(this));
+          });
+
+      });
+    });
+</script>
+<script type="text/javascript">// <![CDATA[
+        function loading(){
+            $("#loading").show();
+            $("#content").hide();
+        }
+// ]]></script>
+
+
+{% endblock %}

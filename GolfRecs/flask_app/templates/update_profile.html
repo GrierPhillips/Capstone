@@ -1,0 +1,107 @@
+{% extends '/layouts/main.html' %}
+{% block title %}
+  Update your profile
+{% endblock %}
+
+{% block content %}
+<section class='success' id='profile'>
+  <div class='container'>
+    <div class='row'>
+      <div class='col-md-6'>
+        {% if error %}
+          <p><strong>Error:</strong> {{ error }}
+        {% endif %}
+        <form class="form-horizontal" action="/update_profile" method="POST" role=form>
+          {{ form.hidden_tag() }}
+          <div id="legend">
+            <legend class="">Update Profile</legend>
+          </div>
+          <fieldset>
+            {{ form.age(placeholder='Age', class="form-control input-md", style="width:50px;") }}
+            <select name="{{ form.gender.name }}" class='form-control input-md' style="width:175px;">
+              {% for option in form.gender %}
+                {{ make_option(option) }}
+              {% endfor %}
+            </select>
+            <select name="{{ form.skill.name }}" class='form-control input-md' style="width:175px;">
+              {% for option in form.skill %}
+                {{ make_option(option) }}
+              {% endfor %}
+            </select>
+            <select name="{{ form.handicap.name }}" class='form-control input-md' style="width:175px;">
+              {% for option in form.handicap %}
+                {{ make_option(option) }}
+              {% endfor %}
+            </select>
+            <select name="{{ form.plays.name }}" class='form-control input-md' style="width:175px;">
+              {% for option in form.plays %}
+                {{ make_option(option) }}
+              {% endfor %}
+            </select>
+            {{ form.location(placeholder='City, State', id='geocomplete1', class='form-control input-md', style="width:175px;") }}
+            <br>
+            <div class="control-group">
+              <div class="controls">
+                <button class="btn btn-success" type='submit'>Update</button>
+              </div>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+{% block script %}
+<script type=text/javascript>
+  $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+</script>
+<script>
+$('#state').on('change', function() {
+
+      $("#city").empty();
+
+      state_name = $("#state option:selected").text();
+      state_id = $("#state option:selected").val();
+
+      //Sending variables containing selection info to parse_data function in python.
+      // jQuery's builtin ajax functions make things super easy
+
+      // Calling that parse url and sending it arguments
+      $.getJSON($SCRIPT_ROOT + '/_get_cities', {
+          a: state_name
+
+      // Function to get data returned from parse_data and populate the second select field.
+      }, function(data) {
+          // Using jQuery to populate new entries we got from flask.
+          var options = $("#city");
+          $.each(data, function() {
+              options.append($("<option />").val(this).text(this));
+          });
+
+      });
+    });
+</script>
+<script type="text/javascript">
+$(function(){
+
+$("input")
+  .geocomplete()
+  .bind("geocode:result", function(event, result){
+    console.log(result)
+    document.getElementById('lat').value = result.geometry.location.lat();
+    document.getElementById('lng').value = result.geometry.location.lng();
+    var components = ['city', 'county', 'state', 'country']
+    document.getElementById('city').value = result.address_components[0].long_name
+    document.getElementById('county').value = result.address_components[1].long_name
+    document.getElementById('state').value = result.address_components[2].long_name
+    document.getElementById('country').value = result.address_components[3].long_name
+
+
+
+  });
+});
+</script>
+
+{% endblock %}
