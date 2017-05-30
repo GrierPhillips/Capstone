@@ -14,7 +14,7 @@ from pymongo import MongoClient, UpdateOne
 from pymongo.errors import InvalidOperation
 import yaml
 
-from utils import check_pages, get_course_info, parse_review, parse_user_info
+# from src.utils import check_pages, get_course_info, parse_review, parse_user_info
 
 POOL_SIZE = cpu_count()
 
