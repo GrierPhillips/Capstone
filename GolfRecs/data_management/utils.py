@@ -1,18 +1,13 @@
-"""
-GolfRecs.utils
-
-This module provides utility functions that are used within GolfRecs.
-"""
+"""This module provides utility functions that are used within GolfRecs."""
 
 from math import ceil
 
-
-from stem import Signal
 from stem.control import Controller
+from stem import Signal
+
 
 def get_extras(soup):
-    """
-    Return a dictionary of extra information about the course.
+    """Return a dictionary of extra information about the course.
 
     Some courses contain extra information about driving range, carts,
     spikes, lessons, etc... Collect and return this information as a
@@ -23,6 +18,7 @@ def get_extras(soup):
             html.
     Returns:
         extras (dict): Dictionary of course extras.
+
     """
     try:
         extras_groups = soup.find(id='more').find_all(class_='col-sm-4')
@@ -36,8 +32,7 @@ def get_extras(soup):
 
 
 def get_tee_info(soup):
-    """
-    Return a dictionary of tees.
+    """Return a dictionary of tees.
 
     Given the html for a course, return a dictionary of tees where the tee
     names are the keys and the values are dictionaries containing the
@@ -48,6 +43,7 @@ def get_tee_info(soup):
             html.
     Returns:
         tees (dict): Dictionary of tee documents.
+
     """
     rows = soup.find_all('tr')
     tees = {}
@@ -64,14 +60,14 @@ def get_tee_info(soup):
 
 
 def get_key_info(soup):
-    """
-    Return dictionary of key info about the course extracted from html.
+    """Return dictionary of key info about the course extracted from html.
 
     Args:
         soup (bs4.BeautifulSoup): BeautifulSoup instance containing course
             html.
     Returns:
         key_info (dict): They pieces of key info provided about the course.
+
     """
     try:
         info = soup.find(class_='key-info clearfix').find_all('div')[2:]
@@ -83,8 +79,7 @@ def get_key_info(soup):
 
 
 def parse_address(soup):
-    """
-    Return dictionary of address items for the course extracted from html.
+    """Return dictionary of address items for the course extracted from html.
 
     Args:
         soup (bs4.BeautifulSoup): BeautifulSoup instance containing course
@@ -92,6 +87,7 @@ def parse_address(soup):
     Returns:
         address (dict): Dictionary containing the mailing address and all
             of the components of the address.
+
     """
     address = dict()
     address_info = soup.find_all(class_='address')
@@ -104,8 +100,7 @@ def parse_address(soup):
 
 
 def get_layout(soup):
-    """
-    Return dictionary of course layout from the html.
+    """Return dictionary of course layout from the html.
 
     Args:
         soup (bs4.BeautifulSoup): BeautifulSoup instance containing course
@@ -114,6 +109,7 @@ def get_layout(soup):
         layout (dictionary): Dictionary containing all elements of the
             course layout that are present: Holes, Par, Length, Slope,
             and Rating.
+
     """
     try:
         info = soup.find(class_='course-essential-info-top').find_all('li')
@@ -124,8 +120,7 @@ def get_layout(soup):
 
 
 def parse_review(review):
-    """
-    Return a dictionary of review information.
+    """Return a dictionary of review information.
 
     Given a BeautifulSoup element extract the components of the review and
     organize them into a dictionary.
@@ -136,6 +131,7 @@ def parse_review(review):
     Returns:
         review_info (dict): A dictionary containing all of the provided
             review components.
+
     """
     review_info = {}
     id_ = review.find(class_='row')['id'].split('-')[1]
@@ -165,8 +161,7 @@ def parse_review(review):
 
 
 def parse_user_info(review):
-    """
-    Return a dictionary of user information.
+    """Return a dictionary of user information.
 
     Given a BeautifulSoup element extract the user attributes form the html
     and organize them into a dictionary.
@@ -177,6 +172,7 @@ def parse_user_info(review):
     Returns:
         user_info (dict): A dictionary containing all of the provided
             user information.
+
     """
     info = review.find(
         class_='bv_review_user_details col-xs-8 col-sm-12'
@@ -197,8 +193,7 @@ def parse_user_info(review):
 
 
 def check_pages(soup):
-    """
-    Return the number of pages of reviews a course has.
+    """Return the number of pages of reviews a course has.
 
     Given the total number of reivews for a course determine the number
     of pages that are populated with reviews. Each page has 20 reviews.
@@ -208,6 +203,7 @@ def check_pages(soup):
             html.
     Returns:
         pages (int): Number of pages containing reviews.
+
     """
     review_count = int(soup.find(itemprop='reviewCount').text.strip('()'))
     pages = 1
@@ -217,8 +213,7 @@ def check_pages(soup):
 
 
 def get_course_info(soup, url):
-    """
-    Create a document for a golf course, including course stats and info.
+    """Create a document for a golf course, including course stats and info.
 
     Args:
         soup (bs4.BeautifulSoup): BeautifulSoup instance containing html
@@ -226,6 +221,7 @@ def get_course_info(soup, url):
         url (string): The address of the main course page.
     Returns:
         course_doc (dict): Dictionary containing the course stats and info.
+
     """
     course_doc = {}
     course_doc['GA Url'] = url
