@@ -38,7 +38,7 @@
                 {{ make_option(option) }}
               {% endfor %}
             </select>
-            {{ form.location(placeholder='City, State', id='user_location', class='form-control input-md', style="width:175px;") }}
+            {{ form.location(placeholder='City, State', id='location', class='form-control input-md', style="width:175px;") }}
             {{ form.city(data_geo='locality') }}
             {{ form.county(data_geo='administrative_area_level_2') }}
             {{ form.state(data_geo='administrative_area_level_1') }}
@@ -47,11 +47,7 @@
             {{ form.lat(data_geo='lat') }}
             {{ form.lng(data_geo='lng') }}
             <br>
-            <div class="control-group">
-              <div class="controls">
-                <button class="btn btn-success" type='submit'>Update</button>
-              </div>
-            </div>
+            <button class="btn btn-success" type='submit'>Update</button>
           </fieldset>
         </form>
       </div>
@@ -64,7 +60,7 @@
 
 <script type="text/javascript">
 $(function(){
-  $(" #user_location").geocomplete({
+  $(" #location").geocomplete({
     details: "form",
     detailsAttribute: "data-geo"
   });
