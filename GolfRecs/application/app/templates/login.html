@@ -17,20 +17,12 @@
     <div class="row">
       <div class="col-md-6">
         <form class=form-horizontal action="" method="POST" role=form>
-          <fieldset>
-            <div id="legend">
-              <legend clss="">Login</legend>
-            </div>
-            {{ form.hidden_tag() }}
-            <div class="control-group">
-              {{ form.username(placeholder='Username', class='form-control input-lg') }}
-              {{ form.password(placeholder='Password', class='form-control input-lg') }}
-              <br>
-              <div class="controls">
-                <button class="btn btn-success">Login</button>
-              </div>
-            </div>
-          </fieldset>
+          <legend>Login</legend>
+          {{ form.hidden_tag() }}
+          {{ form.username(placeholder='Username', class='form-control input-lg') }}
+          {{ form.password(placeholder='Password', class='form-control input-lg') }}
+          <br>
+          <button class="btn btn-success">Login</button>
         </form>
       </div>
     	<div class="col-md-6">
@@ -39,37 +31,6 @@
           {% elif error %}
             <p><strong>Error:</strong>{{ error }}
           {% endif %}
-
-            <!-- <form class="form-horizontal" action="" method="POST">
-              {{ form.csrf_token}}
-            <fieldset>
-              <div id="legend">
-                <legend class="">Login</legend>
-              </div>
-              <div class="control-group">
-                <label class="control-label" for="username">Username</label>
-                <div class="controls">
-                  <input type="text" id="username" name="username" placeholder="" class="form-control input-lg">
-                  <p class="help-block">Enter username</p>
-                </div>
-              </div>
-
-              <div class="control-group">
-                <label class="control-label" for="password">Password</label>
-                <div class="controls">
-                  <input type="password" id="password" name="password" placeholder="" class="form-control input-lg">
-                  <br>
-                </div>
-              </div>
-
-              <div class="control-group">
-                <div class="controls">
-                  <button class="btn btn-success">Login</button>
-                </div>
-              </div>
-            </fieldset>
-          </form> -->
-
       </div>
     </div>
   </div>
