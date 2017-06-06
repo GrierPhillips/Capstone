@@ -2,6 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 import pickle
+from string import punctuation
 
 from pymongo import MongoClient
 import yaml
@@ -24,5 +25,10 @@ EXECUTOR = ThreadPoolExecutor()
 
 with open('Course Names.pkl', 'rb') as courses:
     COURSES = pickle.load(courses)
+
+COURSES_CLEANED = [
+    ''.join(char for char in course.lower() if char not in punctuation)
+    for course in COURSES
+]
 
 DEBUG = True
