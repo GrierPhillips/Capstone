@@ -119,9 +119,10 @@ class ReviewForm(FlaskForm):
     review = TextAreaField('Review')
     rating = SelectField(
         'Rating',
-        choices=[('', 'Rate Course Overall')] + rating_range,
-        default='',
-        validators=[InputRequired()]
+        choices=[('0', 'Rate Course Overall')] + rating_range,
+        default='0',
+        validators=[InputRequired()],
+        coerce=int
     )
     conditions = SelectField(
         'Condition',

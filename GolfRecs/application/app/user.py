@@ -22,6 +22,7 @@ class User(UserMixin):
 
         """
         self.username = user_doc['Username']
+        self.user_id = user_doc['User Id']
         self.name = user_doc['Name']
         self.password = user_doc['Password']
         self.email = user_doc['Email']
@@ -73,7 +74,7 @@ class User(UserMixin):
         return taken
 
     @classmethod
-    def is_email_taken(self, email):
+    def is_email_taken(cls, email):
         """Check if email address is already in use.
 
         Args:

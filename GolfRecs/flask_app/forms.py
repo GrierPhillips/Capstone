@@ -1,6 +1,11 @@
-from wtforms import Form, StringField, validators, IntegerField, SelectField, TextAreaField
+"""Module for defining form classes for use in GolfRecs."""
+
+from flask_wtf import FlaskForm
+from wtforms import (IntegerField, SelectField, StringField, TextAreaField,
+                     HiddenField)
+from wtforms.validators import EqualTo, InputRequired, Length, Optional
+
 from states import states
-from wtforms.widgets import HTMLString, html_params
 
 STATE_CHOICES = [('', 'Select State')] + sorted(
     [(key, value) for key, value in states.items()],
