@@ -1,0 +1,111 @@
+{% extends '/layouts/main.html' %}
+{% block title %}
+  Write a review
+{% endblock %}
+{% block header %}
+<header>
+  <div class="container">
+      <div class="row">
+          <div class="col-lg-12">
+              <div class="intro-text">
+                  <span class="name">Review a course you've played</span>
+                  <hr>
+                  <span class="skills">Review as many courses as possible to get the best recommendations.</span>
+              </div>
+          </div>
+      </div>
+  </div>
+</header>
+{% endblock %}
+{% block content %}
+<section class="success" id="about">
+  <div class="container">
+    <div class="row">
+      <div class='col-md-12'>
+        {% if error %}
+          <p><strong>Error:</strong> {{ error }}
+        {% endif %}
+        <form class="form-horizontal" action="/review" method="POST" role=form>
+          {{ form.hidden_tag() }}
+          <div id="legend">
+            <legend class="">Write a Review</legend>
+          </div>
+          <p style='font-size:12pt;'>The only required fields are Course Name and Overall Rating.</p>
+          <fieldset>
+            {{ form.course(placeholder='Course Name', class='form-control input-md') }}
+            <br>
+            {{ form.review(placeholder='Write a Review', class='form-control input-md', rows='5') }}
+            <br>
+            <select name="{{ form.rating.name }}" class='form-control input-md' style="width:175px;">
+              {% for option in form.rating %}
+                  {{ make_option(option) }}
+              {% endfor %}
+            </select>
+            <select name="{{ form.conditions.name }}" class='form-control input-md' style="width:175px;">
+              {% for option in form.conditions %}
+                  {{ make_option(option) }}
+              {% endfor %}
+            </select>
+            <select name="{{ form.difficulty.name }}" class='form-control input-md' style="width:175px;">
+              {% for option in form.difficulty %}
+                  {{ make_option(option) }}
+              {% endfor %}
+            </select>
+            <select name="{{ form.layout.name }}" class='form-control input-md' style="width:175px;">
+              {% for option in form.layout %}
+                  {{ make_option(option) }}
+              {% endfor %}
+            </select>
+            <select name="{{ form.pace.name }}" class='form-control input-md' style="width:175px;">
+              {% for option in form.pace %}
+                  {{ make_option(option) }}
+              {% endfor %}
+            </select>
+            <select name="{{ form.staff.name }}" class='form-control input-md' style="width:175px;">
+              {% for option in form.staff %}
+                  {{ make_option(option) }}
+              {% endfor %}
+            </select>
+            <select name="{{ form.value.name }}" class='form-control input-md' style="width:175px;">
+              {% for option in form.value %}
+                  {{ make_option(option) }}
+              {% endfor %}
+            </select>
+            <select name="{{ form.amenities.name }}" class='form-control input-md' style="width:175px;">
+              {% for option in form.amenities %}
+                  {{ make_option(option) }}
+              {% endfor %}
+            </select>
+            <br>
+            <button class="btn btn-success" type='submit'>Submit Review</button>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block script %}
+<script type=text/javascript>
+$( function() {
+  $( "#course" ).autocomplete({
+    source: function(request, response){
+      $.ajax( {
+        url: "/_get_suggestions",
+        dataType: "json",
+        data: {
+          term: request.term
+        },
+        success: function (result) {
+          response(result);
+        }
+      });
+    },
+    minLength: 2
+  });
+} );
+
+</script>
+
+
+{% endblock %}
