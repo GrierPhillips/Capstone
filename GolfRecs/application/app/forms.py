@@ -111,6 +111,19 @@ class RegistrationForm(FlaskForm):
     password_confirm = StringField('Repeat Password')
 
 
+class RecommendationForm(FlaskForm):
+    """Class for getting recommendation location."""
+
+    location = StringField('Location', id='location')
+    city = HiddenField('City')
+    county = HiddenField('County')
+    state = HiddenField('State')
+    country = HiddenField('Country')
+    zip_code = HiddenField('Zip')
+    lat = HiddenField('Lat')
+    lng = HiddenField('Lng')
+
+
 class ReviewForm(FlaskForm):
     """Class for handling review submission."""
 
