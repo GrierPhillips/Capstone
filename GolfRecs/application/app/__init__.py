@@ -11,4 +11,4 @@ LM.init_app(APP)
 LM.login_view = 'login'
 CSRF = CSRFProtect(APP)
 
-from app import views  # pylint: disable=W0611; # noqa
+from app import views  # pylint: disable=W0611,C0413; # noqa
