@@ -45,9 +45,6 @@ model*.*
 ###############
 boto.cfg
 
-
-*.mov
-
 # OS generated files #
 ######################
 .DS_Store
@@ -57,3 +54,9 @@ boto.cfg
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+
+# Miscellaneous #
+#################
+*.mov
+gulpile.js
