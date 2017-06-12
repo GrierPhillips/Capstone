@@ -160,6 +160,7 @@ def update_profile():
         if not result:
             return render_template('update_profile.html', error=error)
         else:
+            current_user.update()
             return redirect(url_for('account', message=message))
     else:
         error = form.errors
@@ -192,6 +193,7 @@ def review():
         if not result:
             return render_template('review.html', form=form, error=error)
         else:
+            current_user.update()
             return redirect(url_for('account'))
     else:
         error = form.errors

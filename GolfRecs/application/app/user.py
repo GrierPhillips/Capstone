@@ -45,6 +45,23 @@ class User(UserMixin):
         """
         return self.username
 
+    def update(self):
+        """Update attributes."""
+        updated_doc = APP.config['GRUSERS_COLLECTION']\
+            .find_one({'Username': self.username})
+        self.location = {
+            'City': updated_doc['City'],
+            'State': updated_doc['State']
+        }
+        self.sub_attrs = {
+            'Age': updated_doc.get('Age'),
+            'Gender': updated_doc.get('Gender'),
+            'Skill': updated_doc.get('Skill'),
+            'Handicap': updated_doc.get('Handicap'),
+            'Plays': updated_doc.get('Plays'),
+            'Reviewed Courses': updated_doc.get('Reviewed Courses')
+        }
+
     @classmethod
     def validate_login(cls, password_hash, password):
         """Validate a user's login credentials.
