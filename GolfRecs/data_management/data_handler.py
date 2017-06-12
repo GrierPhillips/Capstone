@@ -14,14 +14,14 @@ from pymongo import MongoClient, UpdateOne
 from pymongo.errors import InvalidOperation
 import yaml
 
-# from src.utils import check_pages, get_course_info, parse_review, parse_user_info
+from . import (check_pages, get_course_info, parse_review,
+               parse_user_info)
 
 POOL_SIZE = cpu_count()
 
 
 class DataHandler(object):
-    """
-    Class for collecting and writing data for GolfRecs.
+    """Class for collecting and writing data for GolfRecs.
 
     The DataHandler class is capable of collecting data for courses. That is
     all course specific stats and info as well as a collection of all reviews,
@@ -34,11 +34,11 @@ class DataHandler(object):
             addresses.
         database (string): The name of the database for storing data.
         secrets (dict): A dictionary containing MongoDB authorization info.
+
     """
 
     def __init__(self, courses, sessions, database, secrets=True):
-        """
-        Setup DataHandler for use with multiple IP addresses.
+        """Initialize DataHandler for use with multiple IP addresses.
 
         Args:
             courses (numpy.ndarray, optional): A NumPy array containing urls
@@ -46,17 +46,17 @@ class DataHandler(object):
             sessions (list of requests.sessions.Session, optional): A list of
                 requests sessions that are setup for making requests from
                 multiple IP addresses.Args:
+
         """
         if secrets:
-            with open('secrets.yaml', 'r') as secrets_file:
+            with open('./application/secrets.yaml', 'r') as secrets_file:
                 self.secrets = yaml.load(secrets_file)
         self.courses = courses
         self.sessions = sessions
         self.database = database
 
     def get_reviews(self):
-        """
-        Collect data for all links in self.courses.
+        """Collect data for all links in self.courses.
 
         Returns:
             course_info (list): A list of dictionaries describing all the
@@ -65,14 +65,15 @@ class DataHandler(object):
                 reviews for the course.
             reviews (list): A list of dictionaries containing all of the
                 review data.
+
         """
         links_lists = array_split(array(self.courses), POOL_SIZE)
+        course_info, users, reviews = [], [], []
         with ProcessPoolExecutor() as extr:
             results = extr.map(
                 self.get_all_courses,
                 enumerate(links_lists)
             )
-        course_info, users, reviews = [], [], []
         for result in results:
             course_info.extend(result[0])
             users.extend(result[1])
@@ -80,8 +81,7 @@ class DataHandler(object):
         return course_info, users, reviews
 
     def get_all_courses(self, args):
-        """
-        Retrieve all documents for the given list of courses.
+        """Retrieve all documents for the given list of courses.
 
         Args:
             args (tuple): Tuple containing session number and list of pages.
@@ -94,6 +94,7 @@ class DataHandler(object):
                 reviews for the course.
             reviews (list): A list of dictionaries containing all of the
                 review data.
+
         """
         sess, pages = args
         course_info, users, reviews = [], [], []
@@ -113,8 +114,7 @@ class DataHandler(object):
         return course_info, users, reviews
 
     def get_all_course_reviews(self, session_num, url):
-        """
-        Retrieve all course info, users, and reviews for a given course.
+        """Retrieve all course info, users, and reviews for a given course.
 
         Function to build the course document. Finds the total number of reivew
         pages and gets reviews from each. Also returns document for course info
@@ -128,6 +128,7 @@ class DataHandler(object):
                 reviews for the course.
             reviews (list): A list of dictionaries containing all of the
                 review data.
+
         """
         session = self.sessions[session_num]
         response = session.get(url, )
@@ -161,8 +162,7 @@ class DataHandler(object):
         return course_info, users, reviews
 
     def get_course_reviews(self, url, session_num, name):
-        """
-        Parse all reviews on a single page.
+        """Parse all reviews on a single page.
 
         Args:
             url (string): Page address from which to retrieve reviews.
@@ -173,6 +173,7 @@ class DataHandler(object):
             users (list): List of users stored as dictionaries.
             clearned_reviews (list): List of cleaned reviews stored as
                 dictionaries.
+
         """
         session = self.sessions[session_num]
         response = session.get(url)
@@ -191,8 +192,7 @@ class DataHandler(object):
         return users, cleaned_reviews
 
     def write_documents(self, collection, documents, filter_):
-        """
-        Write documents to a mongodb collection.
+        """Write documents to a mongodb collection.
 
         Args:
             database (string): The name of the database to insert documents
@@ -201,13 +201,13 @@ class DataHandler(object):
                 into.
             documents (list of dict): A list of dictionaries (documents) to
                 insert into the collection.
+
         """
         conn = MongoClient()
         dbase = getattr(conn, self.database)
         dbase.authenticate(
-            self.secrets['mongodb']['user'],
-            self.secrets['mongodb']['password'],
-            mechanism='SCRAM-SHA-1'
+            self.secrets['MongoDB']['user'],
+            self.secrets['MongoDB']['pass']
         )
         coll = getattr(dbase, collection)
         updates = []
