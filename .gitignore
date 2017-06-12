@@ -59,4 +59,4 @@ Thumbs.db
 # Miscellaneous #
 #################
 *.mov
-gulpile.js
+gulpfile.js
