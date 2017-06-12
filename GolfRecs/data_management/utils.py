@@ -90,10 +90,13 @@ def parse_address(soup):
 
     """
     address = dict()
-    address_info = soup.find_all(class_='address')
+    address_info = soup.find(itemprop='address').find_all('li')
     for item in address_info:
-        if 'itemprop' in item.attrs.keys():
-            address[item.attrs['itemprop']] = item.text
+        if 'itemprop' in item.attrs:
+            if item['itemprop'] == 'sameAs':
+                address['Website'] = item.text
+            else:
+                address[item.attrs['itemprop']] = item.text
         else:
             address[item.attrs['class'][0]] = item.text
     return address
@@ -238,4 +241,4 @@ def renew_connection():
     """Change tor exit node. This will allow cycling of IP addresses."""
     with Controller.from_port(port=9051) as controller:
         controller.authenticate(password="password")
-        controller.signal(Signal.NEWNYM)
+        controller.signal(Signal.NEWNYM)  # pylint: disable=E1101
