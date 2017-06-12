@@ -121,7 +121,7 @@ class DataCollector(object):
         distribute the links among multiple processes to collect the reviews,
         users, and course info for each page of reviews.
         """
-        if self.courses.size:
+        if self.courses.size < 1:
             raise Exception(
                 "No links exist for retrieving reviews. Either call " +
                 "self.get_courses() or set self.courses equal to a list " +
@@ -130,7 +130,7 @@ class DataCollector(object):
 
         courses_lists = array_split(
             self.courses,
-            self.courses.size // POOL_SIZE * 20
+            self.courses.size // (POOL_SIZE * 20)
         )
         for courses in courses_lists:
             handler = DataHandler(courses, self.sessions, 'GolfRecs')
