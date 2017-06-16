@@ -124,3 +124,38 @@ def make_options():
         else:
             return option
     return dict(make_option=make_option)
+
+
+def setup_counter():
+    """Set up the Counter collection."""
+    database = APP.config['DATABASE']
+    users = APP.config['USERS_COLLECTION']
+    courses = APP.config['COURSES_COLLECTION']
+    database.create_collection('Counter')
+    counter = database.Counter
+    for user in users.find_one(sort=[('User Id', -1)]):
+        max_user = user['User Id']
+    for course in courses.find_one(sort=[('Course Id', -1)]):
+        max_course = course['Course Id']
+    counter.insert_one({'_id': 'Users', 'seq': max_user})
+    counter.insert_one({'_id': 'Courses', 'seq': max_course})
+
+
+def get_next_sequence(name):
+    """Get the next unique id for a new item in a given collection.
+
+    Args:
+        name (string): Name of the collection to retrieve the next unique id
+            for.
+    Returns:
+        next_id (int): Integer value for the next unique id to use.
+
+    """
+    database = APP.config['DATABASE']
+    seq_doc = database.Counter.find_and_modify(
+        {'_id': name},
+        {'$inc': {'seq': 1}},
+        new=True
+    )
+    next_id = seq_doc['seq']
+    return next_id
