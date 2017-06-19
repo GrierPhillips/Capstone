@@ -1,8 +1,8 @@
 """Module for defining form classes for use in GolfRecs."""
 
 from flask_wtf import FlaskForm
-from wtforms import (IntegerField, SelectField, StringField, TextAreaField,
-                     HiddenField)
+from wtforms import (HiddenField, IntegerField, PasswordField, SelectField,
+                     StringField, TextAreaField)
 from wtforms.validators import EqualTo, InputRequired, Length, Optional
 
 
@@ -100,7 +100,7 @@ class RegistrationForm(FlaskForm):
     zip_code = HiddenField('Zip')
     lat = HiddenField('Lat')
     lng = HiddenField('Lng')
-    password = StringField(
+    password = PasswordField(
         'New Password',
         [
             InputRequired(),
@@ -108,7 +108,7 @@ class RegistrationForm(FlaskForm):
             Length(min=6, max=25)
         ]
     )
-    password_confirm = StringField('Repeat Password')
+    password_confirm = PasswordField('Repeat Password')
 
 
 class RecommendationForm(FlaskForm):
