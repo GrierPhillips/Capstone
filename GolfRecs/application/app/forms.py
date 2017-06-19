@@ -139,36 +139,36 @@ class ReviewForm(FlaskForm):
     )
     conditions = SelectField(
         'Condition',
-        choices=[('', 'Rate Course Conditions')] + rating_range,
-        default=''
+        choices=[('0', 'Rate Course Conditions')] + rating_range,
+        default='0'
     )
     difficulty = SelectField(
         'Difficulty',
-        choices=[('', 'Rate Course Difficulty')] + rating_range,
-        default=''
+        choices=[('0', 'Rate Course Difficulty')] + rating_range,
+        default='0'
     )
     layout = SelectField(
         'Layout',
-        choices=[('', 'Rate Course Layout')] + rating_range,
-        default=''
+        choices=[('0', 'Rate Course Layout')] + rating_range,
+        default='0'
     )
     pace = SelectField(
         'Pace',
-        choices=[('', 'Rate Pace of Play')] + rating_range,
-        default=''
+        choices=[('0', 'Rate Pace of Play')] + rating_range,
+        default='0'
     )
     staff = SelectField(
         'Staff',
-        choices=[('', 'Rate Staff Friendliness')] + rating_range,
-        default=''
+        choices=[('0', 'Rate Staff Friendliness')] + rating_range,
+        default='0'
     )
     value = SelectField(
         'Value',
-        choices=[('', 'Rate Course Value')] + rating_range,
-        default=''
+        choices=[('0', 'Rate Course Value')] + rating_range,
+        default='0'
     )
     amenities = SelectField(
         'Amenities',
-        choices=[('', 'Rate Course Amenities')] + rating_range,
-        default=''
+        choices=[('0', 'Rate Course Amenities')] + rating_range,
+        default='0'
     )

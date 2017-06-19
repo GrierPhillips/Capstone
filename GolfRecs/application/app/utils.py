@@ -30,9 +30,10 @@ def do_review(review_doc):
     APP.config['MODEL'].update_user(
         current_user.user_id,
         review_doc['Course Id'],
-        review_doc['rating']
+        review_doc['Rating']
     )
     result = APP.config['GRREVIEWS_COLLECTION'].insert_one(review_doc)
+    APP.config['REVIEWS_COLLECTION'].insert_one(review_doc)
     if not result.inserted_id:
         validate = False
         error = 'Woops! It seems there was an error. Please try again.'

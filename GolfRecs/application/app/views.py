@@ -163,13 +163,10 @@ def update_profile():
 
 
 @APP.route('/review', methods=['GET', 'POST'])
+@login_required
 def review():
     """Provide the review page."""
     form = ReviewForm()
-    if request.args:
-        error = request.args.get('error')
-    else:
-        error = None
     if form.validate_on_submit():
         review_doc = {
             getattr(form, key).label.text: value
