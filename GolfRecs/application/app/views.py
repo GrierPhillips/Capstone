@@ -188,8 +188,8 @@ def review():
             current_user.update()
             return redirect(url_for('account'))
     else:
-        error = form.errors
-    return render_template('review.html', form=form, error=error)
+        flash_errors(form)
+    return render_template('review.html', form=form)
 
 
 @APP.route('/_get_suggestions', methods=['GET'])
@@ -208,3 +208,7 @@ def get_suggestions():
         APP.config['COURSES'][idx] for idx in distances.argsort()[::-1][:10]
     ]
     return json.dumps(list(top_ten))
+def flash_errors(form):
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash("Error in the {} field: {}".format(getattr(form, field).label.text, error))
