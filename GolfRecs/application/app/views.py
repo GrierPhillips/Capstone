@@ -102,6 +102,7 @@ def signup():
         user = User(user_doc)
         login_user(user)
         APP.config['MODEL'].add_user(user_doc['User Id'])
+        flash('Thanks for registering!')
         return redirect(url_for('account'))
     else:
         error = form.errors

@@ -15,9 +15,11 @@
       <div class='row'>
         <h3>Profile</h3>
         <p>{{ current_user.name }}</p>
-        {% if request.args.get('message') %}
-          <p>{{ request.args.get('message') }}</p>
-        {% endif %}
+        {% with message = get_flashed_messages() %}
+          {% if message %}
+              <p>{{ message }}</p>
+          {% endif %}
+        {% endwith %}
         {% if atts %}
           {% for attr in user_attrs %}
               {% if attr in user_item.keys() %}
