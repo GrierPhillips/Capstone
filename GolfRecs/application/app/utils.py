@@ -1,6 +1,8 @@
 """Module with utility methods used by the different views."""
 
 from flask_login import current_user
+import numpy as np
+from pymongo import UpdateOne
 
 from . import APP
 
@@ -160,3 +162,30 @@ def get_next_sequence(name):
     )
     next_id = seq_doc['seq']
     return next_id
+
+
+def update_reviews():
+    """Update the reviews collection.
+
+    Ensures thatscrapped reviews include the correct User Id and Course Id.
+
+    """
+    reviews = APP.config['REVIEWS_COLLECTION']
+    users = APP.config['USERS_COLLECTION']
+    courses = APP.config['COURSES_COLLECTION']
+    reviews_cursor = reviews.find(
+        {'$or': [
+            {'Course Id': {'$exists': False}},
+            {'User Id': {'$exists': False}}
+        ]}
+    )
+    updates = []
+    for review in reviews_cursor:
+        user_id = users.find_one({'Username': review['Username']})['User Id']
+        course_id = courses.find_one({'GA Id': review['GA Id']})['Course Id']
+        update = UpdateOne(
+            {'Review Id': review['Review Id']},
+            {'$set': {'Course Id': course_id, 'User Id': user_id}}
+        )
+        updates.append(update)
+    reviews.bulk_write(updates)
