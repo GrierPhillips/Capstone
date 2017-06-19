@@ -101,17 +101,19 @@ def get_user(name):
     user_doc = APP.config['GRUSERS_COLLECTION'].find_one({'Username': name})
     reviewed_courses = user_doc.get('Reviewed Courses')
     if reviewed_courses:
-        reviews = APP.config['REVIEWS_COLLECTION'].find(
-            {'Username': name, 'Course Id': {'$in': reviewed_courses[:-11:-1]}}
-        )
-        courses = APP.config['COURSES_COLLECTION'].find(
-            {'Course Id': {'$in': reviewed_courses[:-11:-1]}})
+        reviews = list(APP.config['REVIEWS_COLLECTION'].find({
+            'User Id': user_doc['User Id'],
+            'Course Id': {'$in': reviewed_courses[:-11:-1]}
+        }))
+        courses = list(APP.config['COURSES_COLLECTION'].find(
+            {'Course Id': {'$in': reviewed_courses[:-11:-1]}}
+        ))
         for review_ in reviews:
             review_['Location'] = [
                 course['addressLocality'] + ', ' + course['addressRegion']
                 for course in courses
                 if course['Course Id'] == review_['Course Id']
-            ]
+            ][0]
         return user_doc, reviews
     else:
         return user_doc, []
