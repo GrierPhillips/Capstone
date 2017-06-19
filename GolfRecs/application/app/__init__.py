@@ -1,6 +1,7 @@
 """Initialize the application."""
 
 from flask import Flask
+from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_wtf import CSRFProtect
 
@@ -10,5 +11,6 @@ LM = LoginManager()
 LM.init_app(APP)
 LM.login_view = 'login'
 CSRF = CSRFProtect(APP)
+BCRYPT = Bcrypt(APP)
 
 from . import views  # pylint: disable=W0611,C0413; # noqa

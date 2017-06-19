@@ -1,9 +1,9 @@
 """Module containing the User class."""
 
 from flask_login import UserMixin
-from werkzeug.security import check_password_hash
+# from werkzeug.security import check_password_hash
 
-from . import APP
+from . import APP, BCRYPT
 
 
 class User(UserMixin):
@@ -73,7 +73,7 @@ class User(UserMixin):
             outcome (bool): True if the credentials match, False otherwise.
 
         """
-        outcome = check_password_hash(password_hash, password)
+        outcome = BCRYPT.check_password_hash(password_hash, password)
         return outcome
 
     @classmethod

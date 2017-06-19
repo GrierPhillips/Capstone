@@ -9,7 +9,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from jellyfish import jaro_winkler
 import numpy as np
 
-from . import APP, LM
+from . import APP, BCRYPT, LM
 from .forms import (LoginForm, RegistrationForm, ReviewForm, UpdateProfileForm,
                     RecommendationForm)
 from .setup_mongo_counters import get_next_sequence
@@ -80,20 +80,21 @@ def signup():
     """Provide the signup page."""
     form = RegistrationForm(request.form)
     if form.validate_on_submit():
-        if User.is_username_taken(form['username'].lower()):
+        if User.is_username_taken(form['username'].data.lower()):
             error = 'This username is already in use.'
             return render_template('signup.html', form=form, error=error)
-        if User.is_email_taken(form['email']):
+        if User.is_email_taken(form['email'].data):
             error = 'This email is already in use.'
             return render_template('signup.html', form=form, error=error)
         check_location(form)
-        password = form['password']
+        password = BCRYPT.generate_password_hash(form['password'].data)\
+            .decode()
         user_doc = {
-            'Username': form['username'].lower(),
-            'Name': form['username'],
-            'Email': form['email'],
-            'City': form['city'],
-            'State': form['state'],
+            'Username': form['username'].data.lower(),
+            'Name': form['username'].data,
+            'Email': form['email'].data,
+            'City': form['city'].data,
+            'State': form['state'].data,
             'Password': password
         }
         user_doc.update({'User Id': get_next_sequence('GRUsers')})
