@@ -15,27 +15,27 @@
           {{ form.csrf_token() }}
           <legend>Update Profile</legend>
           {{ form.age(placeholder='Age', class="form-control input-md", style="width:50px;") }}
-          <select name="{{ form.gender.name }}" class='form-control input-md' style="width:175px;">
+          <select name="{{ form.gender.name }}" class='form-control input-md' style="width:250px;">
             {% for option in form.gender %}
               {{ make_option(option) }}
             {% endfor %}
           </select>
-          <select name="{{ form.skill.name }}" class='form-control input-md' style="width:175px;">
+          <select name="{{ form.skill.name }}" class='form-control input-md' style="width:250px;">
             {% for option in form.skill %}
               {{ make_option(option) }}
             {% endfor %}
           </select>
-          <select name="{{ form.handicap.name }}" class='form-control input-md' style="width:175px;">
+          <select name="{{ form.handicap.name }}" class='form-control input-md' style="width:250px;">
             {% for option in form.handicap %}
               {{ make_option(option) }}
             {% endfor %}
           </select>
-          <select name="{{ form.plays.name }}" class='form-control input-md' style="width:175px;">
+          <select name="{{ form.plays.name }}" class='form-control input-md' style="width:250px;">
             {% for option in form.plays %}
               {{ make_option(option) }}
             {% endfor %}
           </select>
-          {{ form.location(placeholder='City, State', id='location', class='form-control input-md', style="width:175px;") }}
+          {{ form.location(placeholder='City, State', id='location', class='form-control input-md', style="width:250px;") }}
           {{ form.city(data_geo='locality') }}
           {{ form.county(data_geo='administrative_area_level_2') }}
           {{ form.state(data_geo='administrative_area_level_1') }}
