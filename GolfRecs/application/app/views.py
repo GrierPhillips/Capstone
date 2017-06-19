@@ -12,9 +12,9 @@ import numpy as np
 from . import APP, BCRYPT, LM
 from .forms import (LoginForm, RegistrationForm, ReviewForm, UpdateProfileForm,
                     RecommendationForm)
-from .setup_mongo_counters import get_next_sequence
 from .user import User
-from .utils import do_review, do_update, check_location, get_user
+from .utils import (do_review, do_update, check_location, get_next_sequence,
+                    get_recommendations, get_user)
 
 
 @APP.route('/', methods=['GET'])
@@ -97,7 +97,7 @@ def signup():
             'State': form['state'].data,
             'Password': password
         }
-        user_doc.update({'User Id': get_next_sequence('GRUsers')})
+        user_doc.update({'User Id': get_next_sequence('Users')})
         APP.config['GRUSERS_COLLECTION'].insert_one(user_doc)
         user = User(user_doc)
         login_user(user)

@@ -151,8 +151,8 @@ def get_next_sequence(name):
         next_id (int): Integer value for the next unique id to use.
 
     """
-    database = APP.config['DATABASE']
-    seq_doc = database.Counter.find_and_modify(
+    counters = APP.config['COUNTERS_COLLECTION']
+    seq_doc = counters.find_and_modify(
         {'_id': name},
         {'$inc': {'seq': 1}},
         new=True
