@@ -48,14 +48,17 @@
         <div class="row lead">
           <h4>{{ item['Course Name'] }}</h4>
           <p>{{ item['Location'] }}</p>
-          <h5>Rating: {{ item['rating'] }}</h5>
-          <h4>Review:</h4>
-          <p>{{ item['Review'] }}</p>
-          {% for attr in rev_attrs %}
+          <p><strong>Rating: </strong>{{ item['Rating'] }}</p>
+          <p><strong>Review: </strong>{{ item['Review'] }}</p>
+          <p>{% for attr in rev_attrs %}
               {% if attr in item.keys() %}
-              <p>{{attr}}: {{item[attr]}}</p>
+                {% if loop.index < rev_attrs|length %}
+                  <strong>{{attr}}: </strong>{{item[attr]|string +  " | "}}
+                {% else %}
+                  <strong>{{attr}}: </strong>{{item[attr]}}
+                {% endif %}
               {% endif %}
-          {% endfor %}
+          {% endfor %}</p>
         </div>
         {% endfor %}
       {% endif %}
