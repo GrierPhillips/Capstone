@@ -101,9 +101,8 @@ def signup():
         APP.config['GRUSERS_COLLECTION'].insert_one(user_doc)
         user = User(user_doc)
         login_user(user)
-        # TODO(me): Make new row in ratings and new column in user_feats
-        message = 'Thanks for registering!'
-        return redirect(url_for('account', message=message))
+        APP.config['MODEL'].add_user(user_doc['User Id'])
+        return redirect(url_for('account'))
     else:
         error = form.errors
     return render_template('signup.html', form=form, error=error)
@@ -112,12 +111,7 @@ def signup():
 @APP.route('/account')
 @login_required
 def account():
-    """Provide the account page.
-
-    Args:
-        message (string): Message to present to the user.
-
-    """
+    """Provide the account page."""
     rev_attrs = [
         'Conditions', 'Layout', 'Difficulty', 'Pace', 'Staff', 'Value',
         'Amenities'
