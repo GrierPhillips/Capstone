@@ -119,6 +119,30 @@ def get_user(name):
         return user_doc, []
 
 
+def get_recommendations(user_id):
+    """Get recommendations for a given user.
+
+    Args:
+        user_id (int): Integer representing the users unique Id.
+    Returns:
+        course_links (dict): Dictionary with course names as keys and links as
+            values.
+
+    """
+    recs = APP.config['MODEL'].predict_all(user_id)
+    recs = np.ma.masked_array(recs, mask=np.zeros(recs.size))
+    top_ten = recs.argsort()[::-1][:10]
+    courses = APP.config['COURSES_COLLECTION']\
+        .find({'Course Id': {'$in': top_ten}})
+    course_links = {}
+    for course in courses:
+        if course.get('Website'):
+            course_links[course['Name']] = course['Website']
+        else:
+            course_links[course['Name']] = course['GA Url']
+    return course_links
+
+
 @APP.context_processor
 def make_options():
     """Create options for SelectField with default disabled."""

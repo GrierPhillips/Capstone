@@ -37,6 +37,11 @@ COURSES_CLEANED = [
     for course in COURSES
 ]
 
+# Create list of closed courses
+CLOSED = []
+for course in COURSES_COLLECTION.find({'Closed': True}):
+    CLOSED.append(course['Course Id'])
+
 # Load recommendation model
 with open('model.pkl', 'rb') as model:
     MODEL = pickle.load(model)

@@ -194,6 +194,7 @@ def review():
 
 
 @APP.route('/_get_suggestions', methods=['GET'])
+@login_required
 def get_suggestions():
     """Return the 10 closest entries."""
     courses = APP.config['COURSES_CLEANED']
@@ -209,6 +210,33 @@ def get_suggestions():
         APP.config['COURSES'][idx] for idx in distances.argsort()[::-1][:10]
     ]
     return json.dumps(list(top_ten))
+
+
+@APP.route('/recommend', methods=['POST', 'GET'])
+@login_required
+def recommend():
+    """Provide the user with location based recommendations."""
+    form = RecommendationForm()
+    error = None
+    # TODO(me): Build model for recommendations based on personal attributes perhaps with pywFM, and use this model if no reviews but attributes are set.
+    if not current_user.sub_attrs['Reviewed Courses']:
+        message = (
+            "It looks like you haven't reviewed any courses yet.", 'Review a' +
+            ' course or update your profile with your age, sex, skill, ' +
+            'handicap, and play frequency and we will be able to start ' +
+            'providing you with recommendations.'
+        )
+        return render_template('recommend.html', message=message)
+    # TODO(me): Implement the haversine formula for sorting recommendations by location.
+    courses = get_recommendations(current_user.user_id)
+    return render_template(
+        'recommend.html',
+        courses=courses,
+        form=form,
+        error=error
+    )
+
+
 def flash_errors(form):
     for field, errors in form.errors.items():
         for error in errors:
