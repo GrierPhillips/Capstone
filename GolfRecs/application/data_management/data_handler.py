@@ -200,20 +200,37 @@ class DataHandler(object):
                 as a filter.
 
         """
-        dbase = MongoClient()[self.database]
-        db_secrets = self.secrets['MongoDB']
-        dbase.authenticate(db_secrets['user'], db_secrets['pass'])
+        dbase = self.database
         coll = dbase[collection]
         updates = []
         for document in documents:
             if filter_ == 'GA Id':
-                id_ = get_next_sequence('Courses')
+                id_ = self.get_next_sequence('Courses')
                 update = make_mongo_update(document, filter_, 'Course Id', id_)
             elif filter_ == 'Username':
-                id_ = get_next_sequence('Users')
+                id_ = self.get_next_sequence('Users')
                 update = make_mongo_update(document, filter_, 'User Id', id_)
             else:
                 id_ = document['Review Id']
                 update = make_mongo_update(document, filter_, 'Review Id', id_)
             updates.append(update)
         coll.bulk_write(updates)
+
+    def get_next_sequence(self, name):
+        """Get the next unique id for a new item in a given collection.
+
+        Args:
+            name (string): Name of the collection to retrieve the next unique
+            id for.
+        Returns:
+            next_id (int): Integer value for the next unique id to use.
+
+        """
+        counters = self.database.Counter
+        seq_doc = counters.find_and_modify(
+            {'_id': name},
+            {'$inc': {'seq': 1}},
+            new=True
+        )
+        next_id = seq_doc['seq']
+        return next_id
