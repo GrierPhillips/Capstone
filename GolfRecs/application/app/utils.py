@@ -125,6 +125,27 @@ def get_user(name):
         return user_doc, []
 
 
+def get_local_courses(loc):
+    """Return list of local public courses.
+
+    Args:
+        loc (dict): Dictionary containing latitude and longitude for the center
+            of the desired sphere.
+    Returns:
+        local_courses (list of dicts): List of dictionaries containing the
+            local course documents.
+
+    """
+    coords = {'type': 'Point', 'coordinates': [loc['Lng'], loc['Lat']]}
+    sphere = {'$nearSphere': {'$geometry': coords, '$maxDistance': 160934}}
+    local_courses = list(
+        APP.config['COURSES_COLLECTION'].find(
+            {'Private': False, 'location': sphere}
+        )
+    )
+    return local_courses
+
+
 def get_recommendations(location):
     """Get recommendations for a given user.
 
