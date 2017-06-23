@@ -217,27 +217,40 @@ def get_suggestions():
 def recommend():
     """Provide the user with location based recommendations."""
     form = RecommendationForm()
-    error = None
     # TODO(me): Build model for recommendations based on personal attributes perhaps with pywFM, and use this model if no reviews but attributes are set.
     if not current_user.sub_attrs['Reviewed Courses']:
-        message = (
-            "It looks like you haven't reviewed any courses yet.", 'Review a' +
-            ' course or update your profile with your age, sex, skill, ' +
+        flash(
+            "It looks like you haven't reviewed any courses yet. Review a " +
+            'course or update your profile with your age, gender, skill, ' +
             'handicap, and play frequency and we will be able to start ' +
-            'providing you with recommendations.'
+            'providing you with recommendations.',
+            'message'
         )
-        return render_template('recommend.html', message=message)
-    # TODO(me): Implement the haversine formula for sorting recommendations by location.
-    courses = get_recommendations(current_user.user_id)
+        return render_template('recommend.html')
+    if form.validate_on_submit():
+        location = {'Lat': form.lat.data, 'Lng': form.lng.data}
+        courses = get_recommendations(location)
+        return render_template(
+            'recommend.html',
+            courses=courses[:10],
+            form=form
+        )
+    elif request.method == 'POST' and not form.validate_on_submit():
+        flash(
+            'Error: You must select a location from the autocomplete ' +
+            'suggestions.',
+            'error'
+        )
+        return render_template('recommend.html', form=form)
+    location = APP.config['CITIES_COLLECTION'].find_one(current_user.location)
+    courses = get_recommendations(location)
     return render_template(
         'recommend.html',
-        courses=courses,
-        form=form,
-        error=error
+        courses=courses[:10],
+        form=form
     )
 
 
 def flash_errors(form):
     for field, errors in form.errors.items():
         for error in errors:
-            flash("Error in the {} field: {}".format(getattr(form, field).label.text, error))

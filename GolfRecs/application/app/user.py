@@ -1,7 +1,7 @@
 """Module containing the User class."""
 
 from flask_login import UserMixin
-# from werkzeug.security import check_password_hash
+import numpy as np
 
 from . import APP, BCRYPT
 
@@ -45,6 +45,13 @@ class User(UserMixin):
         """
         return self.username
 
+    def get_sorted_recs(self):
+        """Get user's sorted predicted ratings."""
+        recs = APP.config['MODEL'].predict_all(self.user_id)
+        recs = np.ma.masked_array(recs, mask=np.zeros(recs.size))
+        sorted_recs = recs.argsort()[::-1]
+        return sorted_recs
+     
     def update(self):
         """Update attributes."""
         updated_doc = APP.config['GRUSERS_COLLECTION']\

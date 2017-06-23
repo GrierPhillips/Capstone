@@ -119,27 +119,36 @@ def get_user(name):
         return user_doc, []
 
 
-def get_recommendations(user_id):
+def get_recommendations(location):
     """Get recommendations for a given user.
 
     Args:
-        user_id (int): Integer representing the users unique Id.
+        location (dict): Dictionary containing central latitude and longitude
+        for desired recommendations.
     Returns:
         course_links (dict): Dictionary with course names as keys and links as
             values.
 
     """
-    recs = APP.config['MODEL'].predict_all(user_id)
+    recs = APP.config['MODEL'].predict_all(current_user.user_id)
     recs = np.ma.masked_array(recs, mask=np.zeros(recs.size))
-    top_ten = recs.argsort()[::-1][:10]
-    courses = APP.config['COURSES_COLLECTION']\
-        .find({'Course Id': {'$in': top_ten}})
-    course_links = {}
+    sorted_recs = recs.argsort()[::-1]
+    # TODO: Find way to store local recs in user object to reduce calls to predict_all()
+    local_courses = get_local_courses(location)
+    public_ids = [course['Course Id'] for course in local_courses]
+    public_ids = np.array(public_ids)
+    course_links = []
+    courses = np.array(local_courses)[get_sorted_index(public_ids, sorted_recs)]
     for course in courses:
-        if course.get('Website'):
-            course_links[course['Name']] = course['Website']
+        name = course['Name']
+        locality, region = course['addressLocality'], course['addressRegion']
+        website = course.get('Website')
+        if website != '' and website:
+            if website.split('//')[0] != 'http:':
+                website = 'http://' + website
+            course_links.append((name, website, locality, region))
         else:
-            course_links[course['Name']] = course['GA Url']
+            course_links.append((name, course['GA Url'], locality, region))
     return course_links
 
 
