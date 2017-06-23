@@ -12,8 +12,8 @@ from lxml import etree
 from numpy import array, array_split
 import requests
 
-from . import DataHandler
-from . import renew_connection
+from .data_handler import DataHandler
+from .utils import renew_connection
 
 POOL_SIZE = cpu_count()
 
@@ -133,7 +133,7 @@ class DataCollector(object):
             self.courses.size // (POOL_SIZE * 10)
         )
         for courses in courses_lists:
-            handler = DataHandler(courses, self.sessions, 'GolfRecs')
+            handler = DataHandler(courses, self.sessions)
             try:
                 results = handler.get_reviews()
                 renew_connection()

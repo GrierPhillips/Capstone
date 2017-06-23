@@ -1,7 +1,11 @@
-"""Initialize data management modules."""
+"""Initialize pymongo connection for data managment modules."""
 
-from .utils import (check_pages, get_course_info, get_extras, get_key_info,  # noqa
-                    get_layout, get_tee_info, make_mongo_update, parse_address,
-                    parse_review, parse_user_info, renew_connection)
-from .data_handler import DataHandler  # noqa
-from .data_collector import DataCollector  # noqa
+from pymongo import MongoClient
+import yaml
+
+
+DATABASE = MongoClient()['GolfRecs']
+with open('../secrets.yaml', 'r') as secrets_file:
+    SECRETS = yaml.load(secrets_file)
+    DB_SECRETS = SECRETS['MongoDB']
+DATABASE.authenticate(DB_SECRETS['user'], DB_SECRETS['pass'])

@@ -10,12 +10,10 @@ from os import cpu_count
 
 from bs4 import BeautifulSoup as bs
 from numpy import array, array_split
-from pymongo import MongoClient
-import yaml
 
-from . import (check_pages, get_course_info, make_mongo_update, parse_review,
-               parse_user_info)
-from ..app.utils import get_next_sequence
+from . import DATABASE
+from .utils import (check_pages, get_course_info, make_mongo_update,
+                    parse_review, parse_user_info)
 
 POOL_SIZE = cpu_count()
 
@@ -37,7 +35,7 @@ class DataHandler(object):
 
     """
 
-    def __init__(self, courses, sessions, database, secrets=True):
+    def __init__(self, courses, sessions):
         """Initialize DataHandler for use with multiple IP addresses.
 
         Args:
@@ -48,12 +46,9 @@ class DataHandler(object):
                 multiple IP addresses.Args:
 
         """
-        if secrets:
-            with open('./application/secrets.yaml', 'r') as secrets_file:
-                self.secrets = yaml.load(secrets_file)
         self.courses = courses
         self.sessions = sessions
-        self.database = database
+        self.database = DATABASE
 
     def get_reviews(self):
         """Collect data for all links in self.courses.
