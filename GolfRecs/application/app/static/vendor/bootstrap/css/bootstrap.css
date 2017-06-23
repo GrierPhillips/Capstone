@@ -1086,7 +1086,7 @@ body {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 14px;
   line-height: 1.42857143;
-  color: #333;
+  color: white;
   background-color: #fff;
 }
 input,
@@ -3434,6 +3434,7 @@ fieldset[disabled] .btn-link:focus {
 }
 .btn-lg,
 .btn-group-lg > .btn {
+  color: transparent;
   padding: 10px 16px;
   font-size: 25px;
   line-height: 1.3333333;

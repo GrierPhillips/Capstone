@@ -22,7 +22,7 @@
     <link href="/static/css/freelancer.css" rel="stylesheet">
 
     <!-- Custom Fonts -->
-    <link href="/static/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="/static/vendor/font-awesome/css/font-awesome.css" rel="stylesheet" type="text/css">
     <link href="/static/vendor/flaticon/flaticon.css" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic" rel="stylesheet" type="text/css">
@@ -75,22 +75,6 @@
                           <a href="/login">Returning Users</a>
                         </li>
                     {% endif %}
-
-                    <!-- <li class="page-scroll">
-                        <a href="/signup">New Users</a>
-                    </li>
-                    <li class="page-scroll">
-                        {% if not session['username'] %}
-                        <a href="/login">Returning Users</a>
-                        {% else %}
-                        <a href="/account">My Profile</a>
-                        {% endif %}
-                    </li>
-                    <li class="page-scroll">
-                        {% if session['username'] %}
-                            <a href='/recommend'>Get Recommendation</a>
-                        {% endif %}
-                    </li> -->
                     <li class="page-scroll">
                         <a href="/#about">About</a>
                     </li>
@@ -109,7 +93,7 @@
 
     {% endblock %}
 
-    <!-- Portfolio Grid Section -->
+    <!-- Content Section -->
     {% block content %}
 
     {% endblock %}
@@ -167,57 +151,8 @@
                   </div>
             </div>
         </div>
-    </div></section>
-
-
-    <!-- Footer
-    <footer class="text-center">
-        <div class="footer-above">
-            <div class="container">
-                <div class="row">
-                    <div class="footer-col col-md-4">
-                        <h3>Location</h3>
-                        <p>3481 Melrose Place
-                            <br>Beverly Hills, CA 90210</p>
-                    </div>
-                    <div class="footer-col col-md-4">
-                        <h3>Around the Web</h3>
-                        <ul class="list-inline">
-                            <li>
-                                <a href="#" class="btn-social btn-outline"><i class="fa fa-fw fa-facebook"></i></a>
-                            </li>
-                            <li>
-                                <a href="#" class="btn-social btn-outline"><i class="fa fa-fw fa-google-plus"></i></a>
-                            </li>
-                            <li>
-                                <a href="#" class="btn-social btn-outline"><i class="fa fa-fw fa-twitter"></i></a>
-                            </li>
-                            <li>
-                                <a href="#" class="btn-social btn-outline"><i class="fa fa-fw fa-linkedin"></i></a>
-                            </li>
-                            <li>
-                                <a href="#" class="btn-social btn-outline"><i class="fa fa-fw fa-dribbble"></i></a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="footer-col col-md-4">
-                        <h3>About Freelancer</h3>
-                        <p>Freelance is a free to use, open source Bootstrap theme created by <a href="http://startbootstrap.com">Start Bootstrap</a>.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="footer-below">
-            <div class="container">
-                <div class="row">
-                    <div class="col-lg-12">
-                        Copyright &copy; Your Website 2016
-                    </div>
-                </div>
-            </div>
-        </div>
-    </footer>
-     -->
+    </div>
+  </section>
 
     <!-- Scroll to Top Button (Only visible on small and extra-small screen sizes) -->
     <div class="scroll-top page-scroll hidden-sm hidden-xs hidden-lg hidden-md">
@@ -241,15 +176,6 @@
     <script src="static/js/freelancer.min.js"></script>
     {% block script %}
     {% endblock %}
-
-    <!-- Google Maps API -->
-    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB_Uhuk3sK3IvsH0dSAC7yNs0w7ZuR5--U&libraries=places"></script>
-
-    <!-- JQuery Geocomplete -->
-    <script src="static/js/jquery.geocomplete.js"></script>
-
-
-
 </body>
 
 </html>

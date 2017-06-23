@@ -131,7 +131,6 @@ header .intro-text .skills {
 }
 .navbar-custom {
   background: #244824;
-  opacity: .7;
   font-family: "Montserrat", "Helvetica Neue", Helvetica, Arial, sans-serif;
   text-transform: uppercase;
   font-weight: 700;
@@ -352,8 +351,8 @@ footer .footer-below {
   background: transparent;
   transition: all 0.3s ease-in-out;
   margin-top: 15px;
-  margin-left: 20px;
-  margin-right: 20px;
+  margin-left: 0px;
+  margin-right: 0px;
 }
 .btn-outline:hover,
 .btn-outline:focus,
@@ -416,8 +415,8 @@ fieldset[disabled] .btn-primary.active {
 .btn-success:active,
 .btn-success.active,
 .open .dropdown-toggle.btn-success {
-  color: white;
-  background-color: #244824;
+  color: #244824;
+  background-color: white;
   border-color: black;
 }
 .btn-success:active,
