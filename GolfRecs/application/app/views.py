@@ -20,10 +20,6 @@ from .utils import (do_review, do_update, check_location, get_next_sequence,
 @APP.route('/', methods=['GET'])
 def index():
     """Render the homepage."""
-    # if 'username' in session:
-    #     if 'reccomendations' not in session:
-    #         session['recommendations'] = EXECUTOR\
-    #             .submit(get_preds, session['username'].lower())
     return render_template('index.html')
 
 
@@ -259,5 +255,15 @@ def recommend():
 
 
 def flash_errors(form):
+    """Flash a standard error message for form errors.
+
+    Args:
+        form (flask_wtf.form.FlaskForm): Form containing errors.
+
+    """
     for field, errors in form.errors.items():
         for error in errors:
+            flash(
+                "Error in the {} field: {}"
+                .format(getattr(form, field).label.text, error)
+            )
