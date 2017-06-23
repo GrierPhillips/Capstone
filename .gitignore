@@ -17,8 +17,9 @@ secrets.yaml
 *.ipynb
 *.ipynb*
 
-# Built Models #
-###########
+# Built Models and pickles #
+############################
+*.pkl
 model.*
 model*.*
 
