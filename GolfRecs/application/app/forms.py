@@ -128,48 +128,47 @@ class RecommendationForm(FlaskForm):
 class ReviewForm(FlaskForm):
     """Class for handling review submission."""
 
-    rating_range = [(num, num) for num in range(1, 6)]
+    rating_range = [(str(num), str(num)) for num in range(1, 6)]
     course = StringField('Course', validators=[InputRequired()])
     review = TextAreaField('Review')
     rating = SelectField(
         'Rating',
-        choices=[('0', 'Rate Course Overall')] + rating_range,
-        default='0',
-        validators=[InputRequired()],
-        coerce=int
+        choices=[('', 'Rate Course Overall')] + rating_range,
+        default='',
+        validators=[InputRequired()]
     )
     conditions = SelectField(
-        'Condition',
-        choices=[('0', 'Rate Course Conditions')] + rating_range,
-        default='0'
+        'Conditions',
+        choices=[('', 'Rate Course Conditions')] + rating_range,
+        default=''
     )
     difficulty = SelectField(
         'Difficulty',
-        choices=[('0', 'Rate Course Difficulty')] + rating_range,
-        default='0'
+        choices=[('', 'Rate Course Difficulty')] + rating_range,
+        default=''
     )
     layout = SelectField(
         'Layout',
-        choices=[('0', 'Rate Course Layout')] + rating_range,
-        default='0'
+        choices=[('', 'Rate Course Layout')] + rating_range,
+        default=''
     )
     pace = SelectField(
         'Pace',
-        choices=[('0', 'Rate Pace of Play')] + rating_range,
-        default='0'
+        choices=[('', 'Rate Pace of Play')] + rating_range,
+        default=''
     )
     staff = SelectField(
         'Staff',
-        choices=[('0', 'Rate Staff Friendliness')] + rating_range,
-        default='0'
+        choices=[('', 'Rate Staff Friendliness')] + rating_range,
+        default=''
     )
     value = SelectField(
         'Value',
-        choices=[('0', 'Rate Course Value')] + rating_range,
-        default='0'
+        choices=[('', 'Rate Course Value')] + rating_range,
+        default=''
     )
     amenities = SelectField(
         'Amenities',
-        choices=[('0', 'Rate Course Amenities')] + rating_range,
-        default='0'
+        choices=[('', 'Rate Course Amenities')] + rating_range,
+        default=''
     )
