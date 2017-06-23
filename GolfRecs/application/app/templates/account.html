@@ -21,17 +21,10 @@
     <div class="col-md-3">
       <div class='row'>
         <h3>Profile</h3>
-        <p>{{ current_user.name }}</p>
-        {% with message = get_flashed_messages() %}
-          {% if message %}
-              <p>{{ message }}</p>
-          {% endif %}
-        {% endwith %}
-        {% if atts %}
-          {% for attr in user_attrs %}
-              {% if attr in user_item.keys() %}
-                <p>{{ attr }}:  {{ user_item[attr] }}</p>
-              {% endif %}
+        <p>{{ current_user.username }}</p>
+        {% if keys %}
+          {% for key in keys %}
+            <p>{{ key }}:  {{ values[loop.index0] }}</p>
           {% endfor %}
         {% else %}
           <p>It looks like you haven't set any profile attributes.</p>
@@ -52,18 +45,17 @@
         </div>
       {% else %}
         {% for item in reviews %}
+        {% set ratings = course_rats[loop.index0] %}
         <div class="row lead">
           <h4>{{ item['Course Name'] }}</h4>
           <p>{{ item['Location'] }}</p>
           <p><strong>Rating: </strong>{{ item['Rating'] }}</p>
           <p><strong>Review: </strong>{{ item['Review'] }}</p>
-          <p>{% for attr in rev_attrs %}
-              {% if attr in item.keys() %}
-                {% if loop.index < rev_attrs|length %}
-                  <strong>{{attr}}: </strong>{{item[attr]|string +  " | "}}
-                {% else %}
-                  <strong>{{attr}}: </strong>{{item[attr]}}
-                {% endif %}
+          <p>{% for attr in course_rats[loop.index0] %}
+              {% if loop.index < ratings|length %}
+                <strong>{{attr}}: </strong>{{item[attr]|string +  " | "}}
+              {% else %}
+                <strong>{{attr}}: </strong>{{item[attr]}}
               {% endif %}
           {% endfor %}</p>
         </div>

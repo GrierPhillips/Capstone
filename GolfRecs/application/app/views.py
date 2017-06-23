@@ -121,14 +121,18 @@ def account():
         'Age', 'Gender', 'Skill', 'Plays', 'Handicap', 'City', 'State'
     ]
     user_item, reviews = get_user(current_user.username)
-    atts = True if len(user_item.keys()) > 4 else False
+    intersect = set(user_item).intersection(set(user_attrs))
+    keys = sorted(intersect, key=user_attrs.index)
+    values = [user_item[key] for key in keys]
+    course_rats = [
+        set(review).intersection(set(rev_attrs)) for review in reviews
+    ]
     return render_template(
         'account.html',
-        atts=atts,
-        user_attrs=user_attrs,
-        user_item=user_item,
+        keys=keys,
+        values=values,
         reviews=reviews,
-        rev_attrs=rev_attrs
+        course_rats=course_rats
     )
 
 
