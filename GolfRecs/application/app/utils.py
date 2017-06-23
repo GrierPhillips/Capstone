@@ -125,6 +125,27 @@ def get_user(name):
         return user_doc, []
 
 
+def get_sorted_index(course_ids, sorted_recs):
+    """Return an array of indices to access the sorted recommendations.
+
+    Args:
+        course_ids (np.array): Numpy array of course id's returned from mongo.
+        sorted_recs (np.array): Numpy array of course id's sorted by
+            predicted rating.
+    Returns:
+        indices (np.array): Numpy array containing the indices of each sorted
+            recommendation in course_ids.
+
+    """
+    idx = course_ids.argsort()
+    sort_x = course_ids[idx]
+    sort_idx = np.searchsorted(sort_x, sorted_recs)
+    yidx = np.take(idx, sort_idx, mode='clip')
+    mask = course_ids[yidx] != sorted_recs
+    indices = np.array(np.ma.array(yidx, mask=mask)[~mask])
+    return indices
+
+
 def get_local_courses(loc):
     """Return list of local public courses.
 
@@ -161,11 +182,11 @@ def get_recommendations(location):
     recs = np.ma.masked_array(recs, mask=np.zeros(recs.size))
     sorted_recs = recs.argsort()[::-1]
     # TODO: Find way to store local recs in user object to reduce calls to predict_all()
-    local_courses = get_local_courses(location)
+    local_courses = np.array(get_local_courses(location))
     public_ids = [course['Course Id'] for course in local_courses]
     public_ids = np.array(public_ids)
     course_links = []
-    courses = np.array(local_courses)[get_sorted_index(public_ids, sorted_recs)]
+    courses = local_courses[get_sorted_index(public_ids, sorted_recs)]
     for course in courses:
         name = course['Name']
         locality, region = course['addressLocality'], course['addressRegion']
