@@ -90,8 +90,8 @@ def signup():
         password = BCRYPT.generate_password_hash(form['password'].data)\
             .decode()
         user_doc = {
-            'Username': form['username'].data.lower(),
-            'Name': form['username'].data,
+            'Username': form['username'].data,
+            'Name Lower': form['username'].data.lower(),
             'Email': form['email'].data,
             'City': form['city'].data,
             'State': form['state'].data,

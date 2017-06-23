@@ -23,11 +23,11 @@ class User(UserMixin):
         """
         self.username = user_doc['Username']
         self.user_id = user_doc['User Id']
-        self.name = user_doc['Name']
-        self.password = user_doc['Password']
+        # self.password = user_doc['Password']
         self.email = user_doc['Email']
         self.location = {'City': user_doc['City'], 'State': user_doc['State']}
         self.sub_attrs = {
+            'Name Lower': user_doc.get('Name Lower'),
             'Age': user_doc.get('Age'),
             'Gender': user_doc.get('Gender'),
             'Skill': user_doc.get('Skill'),
@@ -94,7 +94,7 @@ class User(UserMixin):
 
         """
         taken = APP.config['GRUSERS_COLLECTION']\
-            .find({'Username': username}).count() > 0
+            .find({'Name Lower': username}).count() > 0
         return taken
 
     @classmethod
