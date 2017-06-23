@@ -1,0 +1,79 @@
+{% extends '/layouts/main.html' %}
+{% block title %}
+  Get a Recommendation
+{% endblock %}
+{% block content %}
+<section class="success" id="profile">
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-12">
+        <h2>Recommendations</h2>
+        {% with messages = get_flashed_messages(category_filter=['message']) %}
+          {% if messages %}
+            {% for message in messages %}
+              <p>{{ message }}</p>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        <p>All recommendations are made within a 100 mile radius of your current location.</p>
+      </div>
+    </div>
+    <div class='row'>
+      <div class="col-sm-12">
+        <h3>Current Location:</h3>
+        <div class="row">
+          <div class="col-sm-12">
+            <p>{{ current_user.location['City'] }}, {{ current_user.location['State'] }}</p>
+          </div>
+        </div>
+      </div>
+      <div class='row'>
+        <div class='col-sm-12'>
+          <div class="col-sm-12">
+            <form class="form-horizontal" action="/recommend" method="POST" role=form>
+            {{ form.csrf_token() }}
+              <fieldset>
+                <div id="legend">
+                  <p>Get recommendations for a different location</p>
+                  {% with errors = get_flashed_messages(category_filter=['error']) %}
+                    {% if errors %}
+                      {% for error in errors %}
+                        <p><strong>{{ error }}</strong></p>
+                      {% endfor %}
+                    {% endif %}
+                  {% endwith %}
+                </div>
+                {{ form.location(placeholder='City, State', id='location', class='form-control input-md', style="width:250px;")}}
+                {{ form.city(id='locality') }}
+                {{ form.state(id='administrative_area_level_1') }}
+                {{ form.country(id='country') }}
+                {{ form.lat(id='lat') }}
+                {{ form.lng(id='lng') }}
+                <br>
+                <button class="btn btn-success" type='submit'>Get Recommendations</button>
+              </fieldset>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class='row'>
+      <div class='col-sm-12'>
+      <h3>Courses:</h3>
+        {% for course in courses %}
+          <a href='{{ course[1] }}' class="btn btn-md btn-outline">{{ course[0] }}</a>
+            <p>{{ course[2] }}, {{ course[3] }}</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+
+{% endblock %}
+
+{% block script %}
+<script src="static/js/google.maps.autocomplete.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB_Uhuk3sK3IvsH0dSAC7yNs0w7ZuR5--U&libraries=places&callback=initAutocomplete"></script>
+
+{% endblock %}
