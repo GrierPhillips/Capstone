@@ -1,6 +1,8 @@
 """Module with utility methods used by the different views."""
 
 from flask_login import current_user
+import pickle
+
 import numpy as np
 from pymongo import UpdateOne
 
@@ -34,6 +36,7 @@ def do_review(review_doc):
         review_doc['Course Id'],
         review_doc['Rating']
     )
+    save_model()
     result = APP.config['GRREVIEWS_COLLECTION'].insert_one(review_doc)
     APP.config['REVIEWS_COLLECTION'].insert_one(review_doc)
     if not result.inserted_id:
@@ -272,3 +275,9 @@ def update_reviews():
         )
         updates.append(update)
     reviews.bulk_write(updates)
+
+
+def save_model():
+    """When a new user is added or updated save the file."""
+    with open('model.pkl', 'wb') as model_file:
+        pickle.dump(APP.config['MODEL'], model_file)

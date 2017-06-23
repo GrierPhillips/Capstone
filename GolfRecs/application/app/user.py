@@ -51,7 +51,7 @@ class User(UserMixin):
         recs = np.ma.masked_array(recs, mask=np.zeros(recs.size))
         sorted_recs = recs.argsort()[::-1]
         return sorted_recs
-     
+
     def update(self):
         """Update attributes."""
         updated_doc = APP.config['GRUSERS_COLLECTION']\

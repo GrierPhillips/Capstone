@@ -14,7 +14,7 @@ from .forms import (LoginForm, RegistrationForm, ReviewForm, UpdateProfileForm,
                     RecommendationForm)
 from .user import User
 from .utils import (do_review, do_update, check_location, get_next_sequence,
-                    get_recommendations, get_user)
+                    get_recommendations, get_user, save_model)
 
 
 @APP.route('/', methods=['GET'])
@@ -103,6 +103,7 @@ def signup():
         login_user(user)
         APP.config['MODEL'].add_user(user_doc['User Id'])
         flash('Thanks for registering!')
+        save_model()
         return redirect(url_for('account'))
     else:
         error = form.errors
