@@ -139,8 +139,10 @@ def update_profile():
     form = UpdateProfileForm()
     atts = {
         getattr(form, key).label.text: value
-        for key, value in form.data.items() if key != 'csrf_token'
+        for key, value in form.data.items() if key != 'csrf_token' and value
     }
+    if 'Country' in atts and 'City' not in atts:
+        atts['City'] = form.state.data
     if form.validate_on_submit():
         filled = any([value for value in atts.values()])
         if not filled:

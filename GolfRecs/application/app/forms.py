@@ -1,9 +1,10 @@
 """Module for defining form classes for use in GolfRecs."""
 
 from flask_wtf import FlaskForm
-from wtforms import (HiddenField, IntegerField, PasswordField, SelectField,
-                     StringField, TextAreaField)
+from wtforms import (HiddenField, IntegerField, FloatField, PasswordField,
+                     SelectField, StringField, TextAreaField)
 from wtforms.validators import EqualTo, InputRequired, Length, Optional
+from wtforms.widgets import HiddenInput
 
 
 class LoginForm(FlaskForm):
@@ -80,8 +81,8 @@ class UpdateProfileForm(FlaskForm):
     state = HiddenField('State')
     country = HiddenField('Country')
     zip_code = HiddenField('Zip')
-    lat = HiddenField('Lat')
-    lng = HiddenField('Lng')
+    lat = FloatField('Lat', widget=HiddenInput())
+    lng = FloatField('Lng', widget=HiddenInput())
 
 
 class RegistrationForm(FlaskForm):
@@ -94,12 +95,10 @@ class RegistrationForm(FlaskForm):
     email = StringField('Email Address', validators=[Length(min=6, max=35)])
     location = StringField('Location', id='location')
     city = HiddenField('City')
-    county = HiddenField('County')
     state = HiddenField('State')
     country = HiddenField('Country')
-    zip_code = HiddenField('Zip')
-    lat = HiddenField('Lat')
-    lng = HiddenField('Lng')
+    lat = FloatField('Lat', widget=HiddenInput())
+    lng = FloatField('Lng', widget=HiddenInput())
     password = PasswordField(
         'New Password',
         [

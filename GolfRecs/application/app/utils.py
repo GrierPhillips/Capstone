@@ -68,20 +68,26 @@ def do_update(atts):
 
 
 def check_location(form):
-    """Check if a location exists in the Cities collection.
+    """Check a locations validity and if it exists in the Cities collection.
 
     Args:
         form (app.forms.RegistrationForm): Registration form containing
             location entered by user.
     """
-    city, state = form.city.data, form.state.data
-    location = APP.config['CITIES_COLLECTION']\
-        .find_one({'City': city, 'State': state})
+    city, state, country = form.city.data, form.state.data, form.country.data
+    if not city:
+        city = form.state.data
+        location = APP.config['CITIES_COLLECTION']\
+            .find_one({'City': city, 'Country': country})
+    else:
+        location = APP.config['CITIES_COLLECTION']\
+            .find_one({'City': city, 'State': state, 'Country': country})
     if not location:
         lat, lng = form.lat.data, form.lng.data
         loc_doc = {
             'City': city,
             'State': state,
+            'Country': country,
             'Lat': lat,
             'Lng': lng
         }

@@ -36,13 +36,11 @@
             {% endfor %}
           </select>
           {{ form.location(placeholder='City, State', id='location', class='form-control input-md', style="width:250px;") }}
-          {{ form.city(data_geo='locality') }}
-          {{ form.county(data_geo='administrative_area_level_2') }}
-          {{ form.state(data_geo='administrative_area_level_1') }}
-          {{ form.country(data_geo='country_short') }}
-          {{ form.zip_code(data_geo='postal_code') }}
-          {{ form.lat(data_geo='lat') }}
-          {{ form.lng(data_geo='lng') }}
+          {{ form.city(id='locality') }}
+          {{ form.state(id='administrative_area_level_1') }}
+          {{ form.country(id='country') }}
+          {{ form.lat(id='lat') }}
+          {{ form.lng(id='lng') }}
           <br>
           <button class="btn btn-success" type='submit'>Update</button>
         </form>
