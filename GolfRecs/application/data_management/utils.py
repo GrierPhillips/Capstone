@@ -181,19 +181,40 @@ def parse_user_info(review):
     info = review.find(
         class_='bv_review_user_details col-xs-8 col-sm-12'
     )
-    user_attrs = [item for item in info.find_all('span')]
-    user_attrs = [item.text.strip() for item in user_attrs]
+    user_attrs = [item.text.strip() for item in info.find_all('span')]
     user_info = {}
     try:
         user_info['Userpage'] = info.find('a')['href']
     except TypeError:
         pass
     user_info['Username'] = user_attrs[0]
-    keys = map(lambda x: x.strip(':'), user_attrs[1::2])
+    first_att_index = get_first_index(':', user_attrs)
+    if first_att_index > 1:
+        for att in user_attrs[1:first_att_index + 1]:
+            user_info[att] = 1
+    keys = map(lambda x: x.strip(':'), user_attrs[first_att_index::2])
     user_info.update(
-        dict(zip(keys, user_attrs[2::2]))
+        dict(zip(keys, user_attrs[first_att_index + 1::2]))
     )
     return user_info
+
+
+def get_first_index(substring, items):
+    """Return the index of the first occurrence of substring in list.
+
+    Args:
+        substring (string): The string to search for in list.
+        items (list): The list to search for substring in.
+    Returns:
+        index (int): Index of the first occurrence of substring or -1 if the
+            substring does not occur.
+
+    """
+    for index, val in enumerate(items):
+        if val.endswith(substring):
+            return index
+    index = -1
+    return index
 
 
 def check_pages(soup):
