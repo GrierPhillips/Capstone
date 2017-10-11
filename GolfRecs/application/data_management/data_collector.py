@@ -6,11 +6,14 @@ well as course statistics, information, and user information.
 
 from concurrent.futures import (ThreadPoolExecutor, ProcessPoolExecutor,
                                 as_completed)
+from itertools import repeat
 from os import cpu_count
 
 from lxml import etree
 from numpy import array, array_split
+from pymongo import MongoClient
 import requests
+import yaml
 
 from .data_handler import DataHandler
 from .utils import renew_connection
@@ -121,27 +124,44 @@ class DataCollector(object):
         distribute the links among multiple processes to collect the reviews,
         users, and course info for each page of reviews.
         """
+        dbase = MongoClient()['GolfRecs']
+        with open('../application/secrets.yaml', 'r') as secrets_file:
+            secrets = yaml.load(secrets_file)['MongoDB']
+        dbase.authenticate(secrets['user'], secrets['pass'])
         if self.courses.size < 1:
             raise Exception(
                 "No links exist for retrieving reviews. Either call " +
                 "self.get_courses() or set self.courses equal to a list " +
                 "of courses you wish to process."
             )
-
+        handler = DataHandler(self.sessions)
         courses_lists = array_split(
             self.courses,
             self.courses.size // (POOL_SIZE * 10)
         )
         for courses in courses_lists:
-            handler = DataHandler(courses, self.sessions)
-            try:
-                results = handler.get_reviews()
-                renew_connection()
-            except Exception as err:  # pylint: disable=W0703
-                print('Exception Occurred: {}'.format(err))
-                renew_connection()
-                results = handler.get_reviews()
-            collections = ['Courses', 'Users', 'Reviews']
-            filters = ['GA Id', 'Username', 'Review Id']
-            for args in zip(collections, results, filters):
+            while True:
+                try:
+                    userpages, courses, reviews = handler.\
+                        get_reviews(dbase, courses)
+                    break
+                except Exception as err:  # pylint: disable=W0703
+                    print('Exception Occurred: {}'.format(err))
+                    renew_connection()
+            while True:
+                try:
+                    users = handler.get_users(dbase, userpages)
+                    # renew_connection()
+                    break
+                except Exception as err:  # pylint: disable=W0703
+                    print(
+                        'Exception Occurred in collecting Users: {}'
+                        .format(err)
+                    )
+                    renew_connection()
+            renew_connection()
+            data = (users, courses, reviews)
+            collections = ['Users', 'Courses', 'Reviews']
+            filters = ['Username', 'GA Id', 'Review Id']
+            for args in zip(repeat(dbase), collections, data, filters):
                 handler.write_documents(*args)
