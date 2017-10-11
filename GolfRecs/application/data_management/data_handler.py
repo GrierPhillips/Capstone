@@ -77,6 +77,36 @@ class DataHandler(object):
             reviews.extend(result[2])
         return userpages, course_info, reviews
 
+    def get_users(self, dbase, userpages):
+        """Collect data from all links in userpages.
+
+        Args:
+            dbase (pymongo.database.Database): Database where Users collection
+                resides.
+            # userpages (numpy.ndarray): A NumPy array containing urls for user
+            #     profiles.
+            userpages (dict): Dictionary of Username, Userpage pairs.
+        Returns:
+            users (list): List of dictionaries describing all the users linked
+                in userpages.
+
+        """
+        coll = dbase.Users
+        existing_userpages = set(coll.distinct('Username'))
+        new_users = list(set(userpages.keys()).difference(existing_userpages))
+        new_pages = {user: userpages[user] for user in new_users}
+        users = array_split(array(list(new_pages.keys())), POOL_SIZE)
+        pages = array_split(array(list(new_pages.values())), POOL_SIZE)
+        user_docs = []
+        with ProcessPoolExecutor() as extr:
+            results = extr.map(
+                self.get_all_users,
+                enumerate(zip(users, pages))
+            )
+        for result in results:
+            user_docs.extend(result)
+        return users
+
     def get_all_courses(self, args):
         """Retrieve all documents for the given list of courses.
 
