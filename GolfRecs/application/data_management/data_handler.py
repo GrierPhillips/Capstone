@@ -138,6 +138,32 @@ class DataHandler(object):
                 reviews.extend(data[2])
         return course_info, userpages, reviews
 
+    def get_all_users(self, args):
+        """Retrieve all documents for the given list of users.
+
+        Args:
+            args (tuple): Tuple containing session number and list of pages.
+        Returns:
+            users (list): List of dictionaries desribing all of the users in
+                pages.
+
+        """
+        sess, users, pages = args
+        users = []
+        with ThreadPoolExecutor(max_workers=2) as extr:
+            threads = {
+                extr.submit(
+                    self.get_user_doc,
+                    sess,
+                    user,
+                    page
+                ): page for user, page in zip(users, pages)
+            }
+            for thread in as_completed(threads):
+                user_doc = thread.result()
+                users.append(user_doc)
+        return users
+
     def get_all_course_reviews(self, session_num, url):
         """Retrieve all course info, users, and reviews for a given course.
 
