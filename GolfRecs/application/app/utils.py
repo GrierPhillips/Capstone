@@ -4,7 +4,6 @@ import pickle
 import re
 
 from flask_login import current_user
-
 import numpy as np
 from pymongo import UpdateOne
 
@@ -163,9 +162,15 @@ def get_local_courses(loc):
     """
     coords = {'type': 'Point', 'coordinates': [loc['Lng'], loc['Lat']]}
     sphere = {'$nearSphere': {'$geometry': coords, '$maxDistance': 160934}}
+    # local_courses = list(
+    #     APP.config['COURSES_COLLECTION'].find(
+    #         {'Private': False, 'location': sphere}
+    #     )
+    # )
+    regex = re.compile('^private.*|.*private$', re.IGNORECASE)
     local_courses = list(
         APP.config['COURSES_COLLECTION'].find(
-            {'Private': False, 'location': sphere}
+            {'Type': {'$regex': regex}, 'location': sphere}
         )
     )
     return local_courses
