@@ -172,6 +172,8 @@ class DataHandler(object):
         and profile of all users who reviewed the course.
 
         Args:
+            session_num (int): Integer representing which requests.Session to
+                use.
             url (string): A string of the main course page.
         Returns:
             course_info (dict): Dictionary of all the course stats and info.
@@ -182,35 +184,25 @@ class DataHandler(object):
 
         """
         session = self.sessions[session_num]
-        response = session.get(url, )
-        if response.status_code != 200:
-            soup = bs(
-                session.get('http://www.iplocation.net/find-ip-address').text,
-                'html.parser'
-            )
-            ip_ = soup.find(style='font-weight: bold; color:green;').text
-            raise ConnectionError(
-                'Connection to {} failed using IP address {}'.format(url, ip_)
-            )
+        response = get_response(session, url)
         soup = bs(response.content, 'html.parser')
         course_info = get_course_info(soup, url)
         if not course_info:
             print('Fialed in acquiring {}'.format(url))
             print('Response was: \n{}'.format(response.content))
             raise ConnectionError()
-        users = []
-        reviews = []
+        userpages, reviews = {}, []
         pages = check_pages(soup)
         for i in range(1, pages + 1):
             page = url + '?page={}'.format(i)
-            new_users, new_reviews = self.get_course_reviews(
+            new_userpages, new_reviews = self.get_course_reviews(
                 page,
                 session_num,
                 course_info['Name']
             )
-            users.extend(new_users)
+            userpages.update(new_userpages)
             reviews.extend(new_reviews)
-        return course_info, users, reviews
+        return course_info, userpages, reviews
 
     def get_course_reviews(self, url, session_num, name):
         """Parse all reviews on a single page.
