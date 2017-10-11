@@ -328,3 +328,27 @@ def get_new_docs(key, collection, docs):
         return docs
 
 
+def ip_error(session, url):
+    """Raise an error containing the ip address of the failing session.
+
+    When a session fails making a request raise a ConnectionError along with
+    the url that was requested and the ip address of the session making the
+    request.
+
+    Args:
+        session (requests.sessions.Session): The session used to make the
+            original failed request.
+        url (string): The url that was being requested when the failure
+            occurred.
+
+    """
+    soup = bs(
+        session.get('http://www.iplocation.net/find-ip-address').text,
+        'html.parser'
+    )
+    ip_ = soup.find(style='font-weight: bold; color:green;').text
+    raise ConnectionError(
+        'Connection to {} failed using IP address {}'.format(url, ip_)
+    )
+
+
