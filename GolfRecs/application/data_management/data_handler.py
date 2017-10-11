@@ -331,7 +331,8 @@ class DataHandler(object):
             updates.append(update)
         return updates
 
-    def get_next_sequence(self, name):
+    @staticmethod
+    def get_next_sequence(database, name):
         """Get the next unique id for a new item in a given collection.
 
         Args:
@@ -341,11 +342,7 @@ class DataHandler(object):
             next_id (int): Integer value for the next unique id to use.
 
         """
-        counters = self.database.Counter
-        seq_doc = counters.find_and_modify(
-            {'_id': name},
-            {'$inc': {'seq': 1}},
-            new=True
-        )
-        next_id = seq_doc['seq']
+        counters = database.Counter
+        seq_doc = counters.find_and_modify({'_id': name}, {'$inc': {'seq': 1}})
+        next_id = int(seq_doc['seq'])
         return next_id
