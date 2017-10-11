@@ -299,19 +299,37 @@ class DataHandler(object):
         if updates:
             coll.bulk_write(updates)
 
+    def make_updates(self, docs, dbase, coll, filter_):
+        """Construct all of the updates for the given documents.
+
+        Given a tuple of documents, a database, a collection name, and a filter
+        construct and return a list of UpdateOne objects for each document.
+
+        Args:
+            docs (tuple): Tuple of documents to create updates for.
+            dbase (pymongo.database.Database): Database where Counter
+                collection is stored.
+            coll (string): Name of the collection where updates will be
+                written.
+            filter_ (string): String representing the name of the field to use
+                as a filter.
+        Returns:
+            updates (list): List of UpdateOne objects to be used in a
+                bulk_write operation.
+
+        """
+        update_keys = {
+            'Users': 'User Id',
+            'Courses': 'Course Id',
+            'Reviews': 'Review Id2'
+        }
+        next_id = partial(self.get_next_sequence, dbase)
         updates = []
-        for document in documents:
-            if filter_ == 'GA Id':
-                id_ = self.get_next_sequence('Courses')
-                update = make_mongo_update(document, filter_, 'Course Id', id_)
-            elif filter_ == 'Username':
-                id_ = self.get_next_sequence('Users')
-                update = make_mongo_update(document, filter_, 'User Id', id_)
-            else:
-                id_ = document['Review Id']
-                update = make_mongo_update(document, filter_, 'Review Id', id_)
+        for doc in docs:
+            id_ = next_id(coll)
+            update = make_mongo_update(doc, filter_, update_keys[coll], id_)
             updates.append(update)
-        coll.bulk_write(updates)
+        return updates
 
     def get_next_sequence(self, name):
         """Get the next unique id for a new item in a given collection.
