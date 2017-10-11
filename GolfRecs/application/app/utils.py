@@ -1,7 +1,9 @@
 """Module with utility methods used by the different views."""
 
-from flask_login import current_user
 import pickle
+import re
+
+from flask_login import current_user
 
 import numpy as np
 from pymongo import UpdateOne
