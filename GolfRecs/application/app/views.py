@@ -35,6 +35,7 @@ def login():
         if user_doc and valid:
             user = User(user_doc)
             login_user(user)
+            # TODO(me): Store Ip address used in database
             flash('User successfully logged in')
             return redirect(request.args.get('next') or url_for('index'))
         elif not valid:

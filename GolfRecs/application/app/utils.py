@@ -190,7 +190,8 @@ def get_recommendations(location):
     recs = APP.config['MODEL'].predict_all(current_user.user_id)
     recs = np.ma.masked_array(recs, mask=np.zeros(recs.size))
     sorted_recs = recs.argsort()[::-1]
-    # TODO: Find way to store local recs in user object to reduce calls to predict_all()
+    # TODO(me): Store local recs in user object, reduce calls to predict_all().
+    # TODO(me): Store local recs in database.
     local_courses = np.array(get_local_courses(location))
     public_ids = [course['Course Id'] for course in local_courses]
     public_ids = np.array(public_ids)
