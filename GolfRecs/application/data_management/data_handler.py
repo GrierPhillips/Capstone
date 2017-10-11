@@ -26,29 +26,24 @@ class DataHandler(object):
     and the info for the users who wrote them.
 
     Attributes:
-        courses (numpy.ndarray): A NumPy array containing urls for courses.
         sessions (list of requests.sessions.Session): A list of requests
             sessions that are setup for making requests from multiple IP
             addresses.
         database (string): The name of the database for storing data.
-        secrets (dict): A dictionary containing MongoDB authorization info.
 
     """
 
-    def __init__(self, courses, sessions):
+    def __init__(self, sessions):
         """Initialize DataHandler for use with multiple IP addresses.
 
         Args:
-            courses (numpy.ndarray, optional): A NumPy array containing urls
-                for courses.
             sessions (list of requests.sessions.Session, optional): A list of
                 requests sessions that are setup for making requests from
                 multiple IP addresses.Args:
 
         """
-        self.courses = courses
         self.sessions = sessions
-        self.database = DATABASE
+        self.database = 'GolfRecs'
 
     def get_reviews(self):
         """Collect data for all links in self.courses.
