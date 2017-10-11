@@ -126,8 +126,7 @@ def get_user(name):
                 if course['Course Id'] == review_['Course Id']
             ][0]
         return user_doc, reviews
-    else:
-        return user_doc, []
+    return user_doc, []
 
 
 def get_sorted_index(course_ids, sorted_recs):
@@ -212,8 +211,7 @@ def make_options():
         """Create singe option in SelectField."""
         if option.data == '':
             return option(disabled=True)
-        else:
-            return option
+        return option
     return dict(make_option=make_option)
 
 

@@ -158,9 +158,8 @@ def update_profile():
         result, error = do_update(atts)
         if not result:
             return render_template('update_profile.html', error=error)
-        else:
-            current_user.update()
-            return redirect(url_for('account', message=message))
+        current_user.update()
+        return redirect(url_for('account', message=message))
     else:
         error = form.errors
     return render_template('update_profile.html', form=form, error=error)
@@ -188,9 +187,8 @@ def review():
         result, error = do_review(review_doc)
         if not result:
             return render_template('review.html', form=form, error=error)
-        else:
-            current_user.update()
-            return redirect(url_for('account'))
+        current_user.update()
+        return redirect(url_for('account'))
     else:
         flash_errors(form)
     return render_template('review.html', form=form)
