@@ -269,22 +269,36 @@ class DataHandler(object):
             cleaned_reviews.append(cleaned_review)
         return userpages, cleaned_reviews
 
-    def write_documents(self, collection, documents, filter_):
+    def write_documents(self, dbase, collection, docs, filter_):
         """Write documents to a mongodb collection.
 
         Args:
-            database (string): The name of the database to insert documents
-                into.
-            collection (string): The name of the collection to insert documents
-                into.
+            dbase (string): The name of the database to insert documents into.
+            collection (string): Name of the collection where updates will be
+                written.
             documents (list of dict): A list of dictionaries (documents) to
                 insert into the collection.
             filter_ (string): String representing the name of the field to use
                 as a filter.
 
         """
-        dbase = self.database
+        updates = []
         coll = dbase[collection]
+        if filter_ == 'GA Id':
+            docs = get_new_docs('GA Id', coll, docs)
+            if docs:
+                updates = self.make_updates(docs, dbase, collection, filter_)
+        elif filter_ == 'Username':
+            docs = get_new_docs('Username', coll, docs)
+            if docs:
+                updates = self.make_updates(docs, dbase, collection, filter_)
+        else:
+            docs = get_new_docs('Review Id', coll, docs)
+            if docs:
+                updates = self.make_updates(docs, dbase, collection, filter_)
+        if updates:
+            coll.bulk_write(updates)
+
         updates = []
         for document in documents:
             if filter_ == 'GA Id':
