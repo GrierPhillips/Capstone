@@ -1,7 +1,10 @@
 """This module provides utility functions that are used within GolfRecs."""
 
 from math import ceil
+from operator import itemgetter
 
+from bs4 import BeautifulSoup as bs
+from fake_useragent import UserAgent
 from pymongo import UpdateOne
 from stem.control import Controller
 from stem import Signal
