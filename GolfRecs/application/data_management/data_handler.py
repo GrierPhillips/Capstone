@@ -6,14 +6,14 @@ from a given list of courses on the GolfAdvisor domain.
 """
 from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
                                 as_completed)
+from functools import partial
 from os import cpu_count
 
 from bs4 import BeautifulSoup as bs
 from numpy import array, array_split
 
-from . import DATABASE
-from .utils import (check_pages, get_course_info, make_mongo_update,
-                    parse_review, parse_user_info)
+from .utils import (check_pages, get_course_info, get_new_docs, get_response,
+                    make_mongo_update, parse_review, parse_user_info)
 
 POOL_SIZE = cpu_count()
 
