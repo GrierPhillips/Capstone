@@ -45,20 +45,27 @@ class DataHandler(object):
         self.sessions = sessions
         self.database = 'GolfRecs'
 
-    def get_reviews(self):
-        """Collect data for all links in self.courses.
+    def get_reviews(self, dbase, courses):
+        """Collect data for all links in courses.
 
+        Args:
+            dbase (pymongo.database.Database): Database where Courses, Reviews,
+                and Users collection resides.
+            courses (numpy.ndarray): A NumPy array containing urls for courses.
         Returns:
             course_info (list): A list of dictionaries describing all the
-                courses in pages.
+                courses linked in courses.
             users (list): A list of dictionaries describing the users who left
                 reviews for the course.
             reviews (list): A list of dictionaries containing all of the
                 review data.
 
         """
-        links_lists = array_split(array(self.courses), POOL_SIZE)
-        course_info, users, reviews = [], [], []
+        existing = set(dbase['Courses'].distinct('GA Url'))
+        new = list(set(courses).difference(existing))
+        new_courses = array(new)
+        links_lists = array_split(new_courses, POOL_SIZE)
+        course_info, userpages, reviews = [], {}, []
         with ProcessPoolExecutor() as extr:
             results = extr.map(
                 self.get_all_courses,
@@ -66,9 +73,9 @@ class DataHandler(object):
             )
         for result in results:
             course_info.extend(result[0])
-            users.extend(result[1])
+            userpages.update(result[1])
             reviews.extend(result[2])
-        return course_info, users, reviews
+        return userpages, course_info, reviews
 
     def get_all_courses(self, args):
         """Retrieve all documents for the given list of courses.
