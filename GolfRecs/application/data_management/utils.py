@@ -297,3 +297,34 @@ def make_mongo_update(document, filter_, id_name=None, id_=None):
         upsert=True
     )
     return update
+
+
+def get_new_docs(key, collection, docs):
+    """Return a tuple containing all new documents.
+
+    Collect the distinct values for a given key residing in a given
+    collection and return the documents in docs that do not have a key
+    already in the collection.
+
+    Args:
+        key (string): The name of the field to acquire the distinct values
+            of.
+        collection (pymongo.collection.Collection): The collection to
+            search for distinct values of the given key.
+        docs (list): A list of dictionaries representing documents of
+            courses, users, or reviews.
+    Returns:
+        docs (tuple): A tuple of documents not already stored in the
+            given collection.
+
+    """
+    docs = {doc[key]: doc for doc in docs}
+    existing = set(collection.distinct(key))
+    new = set([id_ for id_ in docs]).difference(existing)
+    if new:
+        docs = itemgetter(*new)(docs)
+        if isinstance(docs, dict):
+            docs = (docs, )
+        return docs
+
+
