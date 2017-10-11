@@ -204,6 +204,38 @@ class DataHandler(object):
             reviews.extend(new_reviews)
         return course_info, userpages, reviews
 
+    def get_user_doc(self, session_num, username, url):
+        """Get the user document from a user's profile page.
+
+        Args:
+            session_num (int): Integer representing which requests.Session to
+                use.
+            username (string): The username for the userpage to collect.
+            url (string): The url for the user's profile page.
+        Returns:
+            user_doc (dict): A dictionary containing all user attributes.
+
+        """
+        session = self.sessions[session_num]
+        response = get_response(session, 'http://www.golfadvisor.com' + url)
+        soup = bs(response.content, 'html.parser')
+        user_info = soup.find(class_='profile-top-part')
+        location = user_info.find(class_='profile-location')
+        if location:
+            location = location.text.strip()
+        atts = [
+            span_item.text.strip('\xa0: ')
+            for item in user_info.find_all('li')
+            for span_item in item.find_all('span')
+        ]
+        user_doc = {key: value for (key, value) in zip(atts[::2], atts[1::2])}
+        if location:
+            user_doc.update({'Location': location, 'Username': username})
+        else:
+            user_doc.update({'Username': username})
+        user_doc.update({'Userpage': url})
+        return user_doc
+
     def get_course_reviews(self, url, session_num, name):
         """Parse all reviews on a single page.
 
