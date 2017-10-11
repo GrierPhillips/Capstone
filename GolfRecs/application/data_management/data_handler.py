@@ -251,20 +251,23 @@ class DataHandler(object):
 
         """
         session = self.sessions[session_num]
-        response = session.get(url)
+        response = get_response(session, url)
         soup = bs(response.content, 'html.parser')
         reviews = soup.find_all(itemprop='review')
-        users = []
+        userpages = {}
         cleaned_reviews = []
         for review in reviews:
             user = parse_user_info(review)
-            users.append(user)
+            if user.get('Userpage'):
+                userpages[user] = user['Userpage']
             cleaned_review = parse_review(review)
-            cleaned_review['Username'] = user['Username']
+            cleaned_review['User'] = user
             cleaned_review['Course Name'] = name
             cleaned_review['GA Url'] = url
+            ga_id = int(url.split('-')[0].split('/')[-1])
+            cleaned_review['GA Id'] = ga_id
             cleaned_reviews.append(cleaned_review)
-        return users, cleaned_reviews
+        return userpages, cleaned_reviews
 
     def write_documents(self, collection, documents, filter_):
         """Write documents to a mongodb collection.
