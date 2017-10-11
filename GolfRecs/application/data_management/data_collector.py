@@ -151,7 +151,6 @@ class DataCollector(object):
             while True:
                 try:
                     users = handler.get_users(dbase, userpages)
-                    # renew_connection()
                     break
                 except Exception as err:  # pylint: disable=W0703
                     print(
