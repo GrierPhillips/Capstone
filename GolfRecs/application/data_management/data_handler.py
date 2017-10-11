@@ -112,8 +112,6 @@ class DataHandler(object):
 
         Args:
             args (tuple): Tuple containing session number and list of pages.
-                sess (int): Integer representing the requests.Session to use.
-                pages (list): List of course links.
         Returns:
             course_info (list): A list of dictionaries describing all the
                 courses in pages.
@@ -124,7 +122,7 @@ class DataHandler(object):
 
         """
         sess, pages = args
-        course_info, users, reviews = [], [], []
+        course_info, userpages, reviews = [], {}, []
         with ThreadPoolExecutor(max_workers=2) as extr:
             threads = {
                 extr.submit(
@@ -136,9 +134,9 @@ class DataHandler(object):
             for thread in as_completed(threads):
                 data = thread.result()
                 course_info.append(data[0])
-                users.extend(data[1])
+                userpages.update(data[1])
                 reviews.extend(data[2])
-        return course_info, users, reviews
+        return course_info, userpages, reviews
 
     def get_all_course_reviews(self, session_num, url):
         """Retrieve all course info, users, and reviews for a given course.
