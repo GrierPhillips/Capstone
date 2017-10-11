@@ -352,3 +352,23 @@ def ip_error(session, url):
     )
 
 
+def get_response(session, url):
+    """Return a response or raise an error if the response is not acquired.
+
+    Args:
+        session (requests.session.Session): Session for making the request.
+        url (string): Website to request.
+    Returns:
+        response (requests.models.Response): Response object of sucessful
+            request.
+
+    """
+    agent = UserAgent()
+    rand = agent.random
+    try:
+        response = session.get(url, headers={'User-Agent': rand})
+    except Exception:  # pylint: disable=W0703
+        ip_error(session, url)
+    if response.status_code != 200:
+        ip_error(session, url)
+    return response
