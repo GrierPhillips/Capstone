@@ -270,7 +270,7 @@ def renew_connection():
         controller.signal(Signal.NEWNYM)  # pylint: disable=E1101
 
 
-def make_mongo_update(document, filter_, id_name, id_):
+def make_mongo_update(document, filter_, id_name=None, id_=None):
     """Create an update object for a bulk update.
 
     The update will include the unique user or course id for documents
@@ -289,7 +289,8 @@ def make_mongo_update(document, filter_, id_name, id_):
             pymongo bulk update.
 
     """
-    document.update({id_name: id_})
+    if isinstance(id_, int):
+        document.update({id_name: id_})
     update = UpdateOne(
         {filter_: document[filter_]},
         {'$set': document},
