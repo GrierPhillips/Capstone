@@ -219,13 +219,20 @@ def get_suggestions():
 def recommend():
     """Provide the user with location based recommendations."""
     form = RecommendationForm()
-    # TODO(me): Build model for recommendations based on personal attributes perhaps with pywFM, and use this model if no reviews but attributes are set.
+    # TODO(me): Build model for recommendations based on personal attributes.
+    # perhaps with pywFM.
     if not current_user.sub_attrs['Reviewed Courses']:
+        # flash(
+        #     "It looks like you haven't reviewed any courses yet. Review a " +
+        #     'course or update your profile with your age, gender, skill, ' +
+        #     'handicap, and play frequency and we will be able to start ' +
+        #     'providing you with recommendations.',
+        #     'message'
+        # )
         flash(
             "It looks like you haven't reviewed any courses yet. Review a " +
-            'course or update your profile with your age, gender, skill, ' +
-            'handicap, and play frequency and we will be able to start ' +
-            'providing you with recommendations.',
+            'course and we will be able to start providing you with ' +
+            'recommendations.',
             'message'
         )
         return render_template('recommend.html')
