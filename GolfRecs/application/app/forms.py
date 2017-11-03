@@ -1,8 +1,8 @@
 """Module for defining form classes for use in GolfRecs."""
 
 from flask_wtf import FlaskForm
-from wtforms import (HiddenField, IntegerField, FloatField, PasswordField,
-                     SelectField, StringField, TextAreaField)
+from wtforms import (IntegerField, SelectField, StringField, TextAreaField,
+                     HiddenField, PasswordField)
 from wtforms.validators import EqualTo, InputRequired, Length, Optional
 from wtforms.widgets import HiddenInput
 
@@ -88,41 +88,34 @@ class UpdateProfileForm(FlaskForm):
 class RegistrationForm(FlaskForm):
     """Class for handling registration data."""
 
-    username = StringField(
-        'Username',
-        validators=[Length(min=3, max=25)]
-    )
+    username = StringField('Username', validators=[Length(min=3, max=25)])
     email = StringField('Email Address', validators=[Length(min=6, max=35)])
     location = StringField('Location', id='location')
     city = HiddenField('City')
+    county = HiddenField('County')
     state = HiddenField('State')
     country = HiddenField('Country')
-    lat = FloatField('Lat', widget=HiddenInput())
-    lng = FloatField('Lng', widget=HiddenInput())
+    zip_code = HiddenField('Zip')
+    lat = HiddenField('Lat')
+    lng = HiddenField('Lng')
     password = PasswordField(
         'New Password',
-        [
-            InputRequired(),
-            EqualTo('password_confirm', message='Passwords must match'),
-            Length(min=6, max=25)
-        ]
-    )
+        [InputRequired(),
+         EqualTo('password_confirm', message='Passwords must match'),
+         Length(min=6, max=25)])
     password_confirm = PasswordField('Repeat Password')
 
-
-class RecommendationForm(FlaskForm):
-    """Class for getting recommendation location."""
-
-    location = StringField(
-        'Location',
-        id='location',
-        validators=[InputRequired()]
-    )
-    city = HiddenField('City')
-    state = HiddenField('State')
-    country = HiddenField('Country')
-    lat = FloatField('Lat', widget=HiddenInput(), validators=[InputRequired()])
-    lng = FloatField('Lng', widget=HiddenInput(), validators=[InputRequired()])
+    def validate(self):
+        success = FlaskForm.validate(self)
+        if not success:
+            return False
+        if User.is_username_taken(self.username.data.lower()):
+            self.username.errors.append('This username is already in use.')
+            return False
+        if User.is_email_taken(self.email.data):
+            self.email.errors.append('This email is already taken.')
+            return False
+        return True
 
 
 class ReviewForm(FlaskForm):
