@@ -76,12 +76,6 @@ def signup():
     """Provide the signup page."""
     form = RegistrationForm(request.form)
     if form.validate_on_submit():
-        if User.is_username_taken(form['username'].data.lower()):
-            error = 'This username is already in use.'
-            return render_template('signup.html', form=form, error=error)
-        if User.is_email_taken(form['email'].data):
-            error = 'This email is already in use.'
-            return render_template('signup.html', form=form, error=error)
         check_location(form)
         password = BCRYPT.generate_password_hash(form['password'].data)\
             .decode()
