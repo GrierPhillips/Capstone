@@ -6,6 +6,8 @@ from wtforms import (HiddenField, IntegerField, FloatField, PasswordField,
 from wtforms.validators import EqualTo, InputRequired, Length, Optional
 from wtforms.widgets import HiddenInput
 
+from .user import User
+
 
 class LoginForm(FlaskForm):
     """Class for handling login entries."""
