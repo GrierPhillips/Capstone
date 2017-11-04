@@ -24,13 +24,11 @@
           {{ form.location(placeholder='City, State', id='location', class='form-control input-lg') }}
           {{ form.password(placeholder='Password', class='form-control input-lg')}}
           {{ form.password_confirm(placeholder='Confirm Password', class='form-control input-lg')}}
-          {{ form.city(data_geo='locality') }}
-          {{ form.county(data_geo='administrative_area_level_2') }}
-          {{ form.state(data_geo='administrative_area_level_1') }}
-          {{ form.country(data_geo='country_short') }}
-          {{ form.zip_code(data_geo='postal_code') }}
-          {{ form.lat(data_geo='lat') }}
-          {{ form.lng(data_geo='lng') }}
+          {{ form.city(id='locality') }}
+          {{ form.state(id='administrative_area_level_1') }}
+          {{ form.country(id='country') }}
+          {{ form.lat(id='lat') }}
+          {{ form.lng(id='lng') }}
           <br>
           <button class="btn btn-success" type='submit'>Register</button>
         </form>
@@ -52,13 +50,8 @@
 {% endblock %}
 {% block script %}
 
-<script type="text/javascript">
-$(function(){
-  $(" #location").geocomplete({
-    details: "form",
-    detailsAttribute: "data-geo"
-  });
-})
-</script>
+<script src="static/js/google.maps.autocomplete.js"></script>
+
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB_Uhuk3sK3IvsH0dSAC7yNs0w7ZuR5--U&libraries=places&callback=initAutocomplete"></script>
 
 {% endblock %}
