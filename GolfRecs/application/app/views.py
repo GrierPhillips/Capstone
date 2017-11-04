@@ -101,9 +101,7 @@ def signup():
         flash('Thanks for registering!')
         save_model()
         return redirect(url_for('account'))
-    else:
-        error = form.errors
-    return render_template('signup.html', form=form, error=error)
+    return render_template('signup.html', form=form, error=form.errors)
 
 
 @APP.route('/account')

@@ -35,13 +35,9 @@
       </div>
       <div class="col_md-6">
         {% if error %}
-          {% if error is string %}
-            <p><strong>Error:</strong> {{ error }}
-          {% else %}
-            {% for field, err in error.items() %}
-              <p><strong>Error:</strong> {{ '{}: {}'.format(form[field].label.text, err) }}
-            {% endfor %}
-          {% endif %}
+          {% for field, err in error.items() %}
+            <p><strong>Error:</strong> {{ '{}: {}'.format(form[field].label.text, err[0]) }}
+          {% endfor %}
         {% endif %}
       </div>
     </div>
