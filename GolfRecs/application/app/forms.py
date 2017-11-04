@@ -102,10 +102,10 @@ class RegistrationForm(FlaskForm):
     lat = FloatField('Lat', widget=HiddenInput())
     lng = FloatField('Lng', widget=HiddenInput())
     password = PasswordField(
-        'New Password',
+        'Password',
         [
             InputRequired(),
-            EqualTo('password_confirm', message='Passwords must match'),
+            EqualTo('password_confirm', message='Passwords must match.'),
             Length(min=6, max=25)
         ]
     )
