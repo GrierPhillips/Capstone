@@ -138,8 +138,7 @@ def update_profile():
     form = UpdateProfileForm()
     atts = {
         getattr(form, key).label.text: value
-        for key, value in form.data.items() if key != 'csrf_token' and value
-    }
+        for key, value in form.data.items() if key != 'csrf_token' and value}
     if 'Country' in atts and 'City' not in atts:
         atts['City'] = form.state.data
     if form.validate_on_submit():
@@ -168,13 +167,11 @@ def review():
     if form.validate_on_submit():
         review_doc = {
             getattr(form, key).label.text: value
-            for key, value in form.data.items() if key != 'csrf_token'
-            and value
-        }
+            for key, value in form.data.items()
+            if key != 'csrf_token' and value}
         name, locality = review_doc['Course'].rsplit(', ', 3)[:2]
         course_id = APP.config['COURSES_COLLECTION'].find_one(
-            {'Name': name, 'addressLocality': locality}
-        )['Course Id']
+            {'Name': name, 'addressLocality': locality})['Course Id']
         review_doc['User Id'] = current_user.user_id
         review_doc['Course Id'] = course_id
         review_doc['Course Name'] = name
