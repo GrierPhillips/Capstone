@@ -145,17 +145,14 @@ def update_profile():
     if form.validate_on_submit():
         filled = any([value for value in atts.values()])
         if not filled:
-            error = 'Please fill out at least one field before updating.'
-            return render_template(
-                'update_profile.html',
-                form=form,
-                error=error
-            )
+            flash('Please fill out at least one field before updating.')
+            return render_template('update_profile.html', form=form)
         check_location(form)
         message = 'You have successfully updated your profile.'
         result, error = do_update(atts)
         if not result:
-            return render_template('update_profile.html', error=error)
+            flash(error)
+            return render_template('update_profile.html', form=form)
         current_user.update()
         return redirect(url_for('account', message=message))
     else:
