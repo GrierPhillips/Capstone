@@ -3,7 +3,7 @@
 from flask_wtf import FlaskForm
 from wtforms import (DecimalField, HiddenField, IntegerField, PasswordField,
                      SelectField, StringField, TextAreaField)
-from wtforms.validators import EqualTo, InputRequired, Length, Optional
+from wtforms.validators import EqualTo, Required, Length, Optional
 from wtforms.widgets import HiddenInput
 
 from .user import User
@@ -14,11 +14,11 @@ class LoginForm(FlaskForm):
 
     username = StringField(
         'Username',
-        validators=[InputRequired(), Length(min=3, max=25)]
+        validators=[Required(), Length(min=3, max=25)]
     )
     password = PasswordField(
         'Password',
-        validators=[InputRequired(), Length(min=6, max=25)]
+        validators=[Required(), Length(min=6, max=25)]
     )
 
 
@@ -104,7 +104,7 @@ class RegistrationForm(FlaskForm):
     password = PasswordField(
         'Password',
         [
-            InputRequired(),
+            Required(),
             EqualTo('password_confirm', message='Passwords must match.'),
             Length(min=6, max=25)
         ]
@@ -118,7 +118,7 @@ class RecommendationForm(FlaskForm):
     location = StringField(
         'Location',
         id='location',
-        validators=[InputRequired()]
+        validators=[Required()]
     )
     city = HiddenField('City')
     state = HiddenField('State')
@@ -131,13 +131,13 @@ class ReviewForm(FlaskForm):
     """Class for handling review submission."""
 
     rating_range = [(str(num), str(num)) for num in range(1, 6)]
-    course = StringField('Course', validators=[InputRequired()])
+    course = StringField('Course', validators=[Required()])
     review = TextAreaField('Review')
     rating = SelectField(
         'Rating',
         choices=[('', 'Rate Course Overall')] + rating_range,
         default='',
-        validators=[InputRequired()]
+        validators=[Required()]
     )
     conditions = SelectField(
         'Conditions',
