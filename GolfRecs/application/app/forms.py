@@ -14,12 +14,10 @@ class LoginForm(FlaskForm):
 
     username = StringField(
         'Username',
-        validators=[Required(), Length(min=3, max=25)]
-    )
+        validators=[Required(), Length(min=3, max=25)])
     password = PasswordField(
         'Password',
-        validators=[Required(), Length(min=6, max=25)]
-    )
+        validators=[Required(), Length(min=6, max=25)])
 
 
 class UpdateProfileForm(FlaskForm):
@@ -32,22 +30,18 @@ class UpdateProfileForm(FlaskForm):
             ('', 'Select Gender'),
             ('Female', 'Female'),
             ('Male', 'Male'),
-            ('Choose Not to Identify', 'Choose Not To Identify')
-        ],
+            ('Choose Not to Identify', 'Choose Not To Identify')],
         default='',
-        validators=[Optional()]
-    )
+        validators=[Optional()])
     skill = SelectField(
         'Skill',
         choices=[
             ('', 'Select Skill'),
             ('Beginner', 'Beginner'),
             ('Intermediate', 'Intermediate'),
-            ('Advanced', 'Adavanced')
-        ],
+            ('Advanced', 'Adavanced')],
         default='',
-        validators=[Optional()]
-    )
+        validators=[Optional()])
     handicap = SelectField(
         'Handicap',
         choices=[
@@ -58,11 +52,9 @@ class UpdateProfileForm(FlaskForm):
             ('15-19', '15-19'),
             ('20-24', '20-24'),
             ('25+', '25+'),
-            ("Don't Know", "Don't Know")
-        ],
+            ("Don't Know", "Don't Know")],
         default='',
-        validators=[Optional()]
-    )
+        validators=[Optional()])
     plays = SelectField(
         'Plays',
         choices=[
@@ -72,11 +64,9 @@ class UpdateProfileForm(FlaskForm):
             ('Once every three months', 'Once every three months'),
             ('Once a month', 'Once a month'),
             ('Once a week', 'Once a week'),
-            ('A few times a week', 'A few times a week')
-        ],
+            ('A few times a week', 'A few times a week')],
         default='',
-        validators=[Optional()]
-    )
+        validators=[Optional()])
     location = StringField('Location', id='location')
     city = HiddenField('City')
     state = HiddenField('State')
@@ -91,8 +81,7 @@ class RegistrationForm(FlaskForm):
 
     username = StringField(
         'Username',
-        validators=[Length(min=3, max=25)]
-    )
+        validators=[Length(min=3, max=25)])
     email = StringField('Email Address', validators=[Length(min=6, max=35)])
     location = StringField('Location', id='location', validators=[Required])
     city = HiddenField('City')
@@ -102,12 +91,9 @@ class RegistrationForm(FlaskForm):
     lng = DecimalField('Lng', validators=[Optional()], widget=HiddenInput())
     password = PasswordField(
         'Password',
-        [
-            Required(),
-            EqualTo('password_confirm', message='Passwords must match.'),
-            Length(min=6, max=25)
-        ]
-    )
+        [Required(),
+         EqualTo('password_confirm', message='Passwords must match.'),
+         Length(min=6, max=25)])
     password_confirm = PasswordField('Repeat Password')
 
 
@@ -117,8 +103,7 @@ class RecommendationForm(FlaskForm):
     location = StringField(
         'Location',
         id='location',
-        validators=[Required()]
-    )
+        validators=[Required()])
     city = HiddenField('City')
     state = HiddenField('State')
     country = HiddenField('Country')
@@ -136,40 +121,32 @@ class ReviewForm(FlaskForm):
         'Rating',
         choices=[('', 'Rate Course Overall')] + rating_range,
         default='',
-        validators=[Required()]
-    )
+        validators=[Required()])
     conditions = SelectField(
         'Conditions',
         choices=[('', 'Rate Course Conditions')] + rating_range,
-        default=''
-    )
+        default='')
     difficulty = SelectField(
         'Difficulty',
         choices=[('', 'Rate Course Difficulty')] + rating_range,
-        default=''
-    )
+        default='')
     layout = SelectField(
         'Layout',
         choices=[('', 'Rate Course Layout')] + rating_range,
-        default=''
-    )
+        default='')
     pace = SelectField(
         'Pace',
         choices=[('', 'Rate Pace of Play')] + rating_range,
-        default=''
-    )
+        default='')
     staff = SelectField(
         'Staff',
         choices=[('', 'Rate Staff Friendliness')] + rating_range,
-        default=''
-    )
+        default='')
     value = SelectField(
         'Value',
         choices=[('', 'Rate Course Value')] + rating_range,
-        default=''
-    )
+        default='')
     amenities = SelectField(
         'Amenities',
         choices=[('', 'Rate Course Amenities')] + rating_range,
-        default=''
-    )
+        default='')
