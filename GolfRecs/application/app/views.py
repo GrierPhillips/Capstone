@@ -91,8 +91,7 @@ def signup():
             'Email': form['email'].data,
             'City': form['city'].data,
             'State': form['state'].data,
-            'Password': password
-        }
+            'Password': password}
         user_doc.update({'User Id': get_next_sequence('Users')})
         APP.config['GRUSERS_COLLECTION'].insert_one(user_doc)
         user = User(user_doc)
@@ -110,25 +109,21 @@ def account():
     """Provide the account page."""
     rev_attrs = [
         'Conditions', 'Layout', 'Difficulty', 'Pace', 'Staff', 'Value',
-        'Amenities'
-    ]
+        'Amenities']
     user_attrs = [
-        'Age', 'Gender', 'Skill', 'Plays', 'Handicap', 'City', 'State'
-    ]
+        'Age', 'Gender', 'Skill', 'Plays', 'Handicap', 'City', 'State']
     user_item, reviews = get_user(current_user.username)
     intersect = set(user_item).intersection(set(user_attrs))
     keys = sorted(intersect, key=user_attrs.index)
     values = [user_item[key] for key in keys]
     course_rats = [
-        set(review).intersection(set(rev_attrs)) for review in reviews
-    ]
+        set(review).intersection(set(rev_attrs)) for review in reviews]
     return render_template(
         'account.html',
         keys=keys,
         values=values,
         reviews=reviews,
-        course_rats=course_rats
-    )
+        course_rats=course_rats)
 
 
 @APP.route('/update_profile', methods=['GET', 'POST'])
@@ -194,15 +189,12 @@ def get_suggestions():
     courses = APP.config['COURSES_CLEANED']
     text = ''.join(
         char for char in request.args['term'].lower()
-        if char not in punctuation
-    )
+        if char not in punctuation)
     distances = np.array([
         jaro_winkler(course, text)
-        if text not in course else 2 for course in courses
-    ])
+        if text not in course else 2 for course in courses])
     top_ten = [
-        APP.config['COURSES'][idx] for idx in distances.argsort()[::-1][:10]
-    ]
+        APP.config['COURSES'][idx] for idx in distances.argsort()[::-1][:10]]
     return json.dumps(list(top_ten))
 
 
@@ -225,8 +217,7 @@ def recommend():
             "It looks like you haven't reviewed any courses yet. Review a " +
             'course and we will be able to start providing you with ' +
             'recommendations.',
-            'message'
-        )
+            'message')
         return render_template('recommend.html')
     if form.validate_on_submit():
         location = {'Lat': form.lat.data, 'Lng': form.lng.data}
@@ -234,22 +225,19 @@ def recommend():
         return render_template(
             'recommend.html',
             courses=courses[:10],
-            form=form
-        )
+            form=form)
     elif request.method == 'POST' and not form.validate_on_submit():
         flash(
             'Error: You must select a location from the autocomplete ' +
             'suggestions.',
-            'error'
-        )
+            'error')
         return render_template('recommend.html', form=form)
     location = APP.config['CITIES_COLLECTION'].find_one(current_user.location)
     courses = get_recommendations(location)
     return render_template(
         'recommend.html',
         courses=courses[:10],
-        form=form
-    )
+        form=form)
 
 
 def flash_errors(form):
@@ -263,5 +251,4 @@ def flash_errors(form):
         for error in errors:
             flash(
                 "Error in the {} field: {}"
-                .format(getattr(form, field).label.text, error)
-            )
+                .format(getattr(form, field).label.text, error))
