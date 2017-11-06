@@ -26,7 +26,7 @@ def do_review(review_doc):
         {'Username': current_user.username})
     if result.get('Reviewed Courses'):
         if review_doc['Course Id'] in result['Reviewed Courses']:
-            validate, error = False, 'You have already reviewed this course'
+            validate, error = False, 'You have already reviewed this course!'
             return validate, error
     APP.config['GRUSERS_COLLECTION'].update_one(
         {'Username': current_user.username},
