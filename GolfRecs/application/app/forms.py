@@ -79,7 +79,6 @@ class UpdateProfileForm(FlaskForm):
     )
     location = StringField('Location', id='location')
     city = HiddenField('City')
-    county = HiddenField('County')
     state = HiddenField('State')
     country = HiddenField('Country')
     zip_code = HiddenField('Zip')
