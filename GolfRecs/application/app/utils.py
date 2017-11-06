@@ -32,12 +32,13 @@ def do_review(review_doc):
         {'Username': current_user.username},
         {'$addToSet': {'Reviewed Courses': review_doc['Course Id']}}
     )
-    APP.config['MODEL'].update_user(
-        current_user.user_id,
-        review_doc['Course Id'],
-        review_doc['Rating']
-    )
-    save_model()
+    # TODO: Update model
+    # APP.config['MODEL'].update_user(
+    #     current_user.user_id,
+    #     review_doc['Course Id'],
+    #     review_doc['Rating']
+    # )
+    # save_model()
     result = APP.config['GRREVIEWS_COLLECTION'].insert_one(review_doc)
     APP.config['REVIEWS_COLLECTION'].insert_one(review_doc)
     if not result.inserted_id:
