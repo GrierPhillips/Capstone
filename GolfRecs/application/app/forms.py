@@ -94,7 +94,7 @@ class RegistrationForm(FlaskForm):
         validators=[Length(min=3, max=25)]
     )
     email = StringField('Email Address', validators=[Length(min=6, max=35)])
-    location = StringField('Location', id='location')
+    location = StringField('Location', id='location', validators=[Required])
     city = HiddenField('City')
     state = HiddenField('State')
     country = HiddenField('Country')
