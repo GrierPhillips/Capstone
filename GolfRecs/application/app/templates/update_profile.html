@@ -8,9 +8,13 @@
   <div class='container'>
     <div class='row'>
       <div class='col-md-6'>
-        {% if error %}
-          <p><strong>Error:</strong> {{ error }}
-        {% endif %}
+        {% with errors = get_flashed_messages() %}
+          {% if errors %}
+            {% for error in errors %}
+                <h3>{{ error }}</h3>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
         <form class="form-horizontal" action="/update_profile" method="POST" role=form>
           {{ form.csrf_token() }}
           <legend>Update Profile</legend>
