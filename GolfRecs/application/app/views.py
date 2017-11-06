@@ -184,7 +184,8 @@ def review():
         review_doc.pop('Course', None)
         result, error = do_review(review_doc)
         if not result:
-            return render_template('review.html', form=form, error=error)
+            flash(error)
+            return render_template('review.html', form=form)
         current_user.update()
         return redirect(url_for('account'))
     else:
