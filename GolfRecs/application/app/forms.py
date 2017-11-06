@@ -1,7 +1,7 @@
 """Module for defining form classes for use in GolfRecs."""
 
 from flask_wtf import FlaskForm
-from wtforms import (HiddenField, IntegerField, FloatField, PasswordField,
+from wtforms import (DecimalField, HiddenField, IntegerField, PasswordField,
                      SelectField, StringField, TextAreaField)
 from wtforms.validators import EqualTo, InputRequired, Length, Optional
 from wtforms.widgets import HiddenInput
@@ -83,8 +83,8 @@ class UpdateProfileForm(FlaskForm):
     state = HiddenField('State')
     country = HiddenField('Country')
     zip_code = HiddenField('Zip')
-    lat = FloatField('Lat', widget=HiddenInput())
-    lng = FloatField('Lng', widget=HiddenInput())
+    lat = DecimalField('Lat', validators=[Optional()], widget=HiddenInput())
+    lng = DecimalField('Lng', validators=[Optional()], widget=HiddenInput())
 
 
 class RegistrationForm(FlaskForm):
@@ -99,8 +99,8 @@ class RegistrationForm(FlaskForm):
     city = HiddenField('City')
     state = HiddenField('State')
     country = HiddenField('Country')
-    lat = FloatField('Lat', widget=HiddenInput())
-    lng = FloatField('Lng', widget=HiddenInput())
+    lat = DecimalField('Lat', validators=[Optional()], widget=HiddenInput())
+    lng = DecimalField('Lng', validators=[Optional()], widget=HiddenInput())
     password = PasswordField(
         'Password',
         [
@@ -123,8 +123,8 @@ class RecommendationForm(FlaskForm):
     city = HiddenField('City')
     state = HiddenField('State')
     country = HiddenField('Country')
-    lat = FloatField('Lat', widget=HiddenInput(), validators=[InputRequired()])
-    lng = FloatField('Lng', widget=HiddenInput(), validators=[InputRequired()])
+    lat = DecimalField('Lat', widget=HiddenInput(), validators=[Required()])
+    lng = DecimalField('Lng', widget=HiddenInput(), validators=[Required()])
 
 
 class ReviewForm(FlaskForm):
